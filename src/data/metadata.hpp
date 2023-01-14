@@ -59,7 +59,7 @@ namespace internal {
         auto bodylenStr = numbers::to_simple_buffer<3>(bodyLength);
 
         std::string msgFmt = 
-            std::string(index, '0') +
+            std::string(index, '\0') +
             "8=" + std::string(broker_settings::BeginString.data()) + SOHChar +
             "9=" + std::string( bodylenStr.data, bodylenStr.data+bodylenStr.size ) + SOHChar +
             "35="+ msgType + SOHChar +

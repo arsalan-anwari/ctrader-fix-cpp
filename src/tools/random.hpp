@@ -1,50 +1,62 @@
-// #pragma once
+#pragma once
 
-// #include <algorithm>
-// #include <array>
-// #include <cstring>
-// #include <functional>
-// #include <random>
-// #include <string>
+#include <stdint.h>
 
-// #include "memory.hpp"
+#include "concepts.hpp"
 
-// namespace ctrader::tools::random{
+namespace ctrader::tools::random{
 
-//     using namespace ctrader::tools::memory;
+    using namespace ctrader::tools::concepts;
 
-//     namespace internal {
+    namespace internal {
 
-//         static constexpr auto anumLookup = 
-//             "0123456789"
-//             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-//             "abcdefghijklmnopqrstuvwxyz";
+        const char anumLookup[] = 
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz"
+            "Aa"; // these are used to padd message, so modolu 64 does not return empty charachter if i=63
 
 
+        consteval uint64_t new_seed() {
+            uint64_t shifted = 0;
 
-//     }
+            for( const auto c : __TIME__ ){
+                shifted <<= 8;
+                shifted |= c;
+            }
 
-//     template<typename T = std::mt19937>
-//     constexpr T new_random_generator() {
-//         auto constexpr seed_bytes = sizeof(typename T::result_type) * T::state_size;
-//         auto constexpr seed_len = seed_bytes / sizeof(std::seed_seq::result_type);
-//         auto seed = std::array<std::seed_seq::result_type, seed_len>();
-//         auto dev = std::random_device();
-//         std::generate_n(begin(seed), seed_len, std::ref(dev));
-//         auto seed_seq = std::seed_seq(begin(seed), end(seed));
-//         return T{seed_seq};
-//     }
+            return shifted;
+        };
 
-//     template<std::size_t KEY_SIZE>
-//     constexpr simple_buffer_t<char, KEY_SIZE> new_random_anum_key(){
-//         auto rng = new_random_generator<>();
-//         auto dist = std::uniform_int_distribution{{}, std::strlen(internal::anumLookup) - 1};
-//         auto result = std::string(KEY_SIZE, '\0');
-//         std::generate_n(begin(result), KEY_SIZE, [&]() { return internal::anumLookup[dist(rng)]; });
+        // first numbers generated as average of outliers in set of random binomial distribution
+        // second number is bitshift of compilation time --> this way each sequential compilation will also generated partially new keys. 
+        uint64_t seeds[2] = {346786427839U, new_seed()};
 
-//         simple_buffer_t<char, KEY_SIZE> buff;
-//         std::copy( result.begin(), result.end(), buff.data );
-//         return buff;
-//     }
+    }
 
-// }
+    // Based on XorShift128+ algorithm
+    static inline __attribute__((always_inline))
+    uint64_t rand(){
+        uint64_t x = internal::seeds[0];
+        uint64_t const y = internal::seeds[1];
+        internal::seeds[0] = y;
+        x ^= x << 23; // a
+        internal::seeds[1] = x ^ y ^ (x >> 17) ^ (y >> 26); // b, c
+        return internal::seeds[1] + y;
+    };
+
+    // Modulo of base 2 is much faster than generic modulo of other numbers. 
+    // No loop needed only sigle bit operation
+    template<uint8_t N> requires is_power_of_2<N>
+    static inline __attribute__((always_inline))
+    uint8_t rand_n(){
+        return (rand() & (N - 1));
+    };
+
+
+    static inline __attribute__((always_inline))
+    char rand_anum(){
+        return internal::anumLookup[rand_n<64>()];
+    };
+
+}

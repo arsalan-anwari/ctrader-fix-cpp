@@ -76,7 +76,7 @@ template<> struct body_t<MSG_TYPE::TEST_REQ> {
 template<> struct body_t<MSG_TYPE::_MD_REQ> {
     union{
         struct {
-            char MDReqID[5 + FieldIdSize];  
+            char MDReqID[5 + FieldIDSize];  
             char SubscriptionRequestType[6]; 
             char MarketDepth[6];
             char MarketDepthMDUpdateType[6];
@@ -84,7 +84,7 @@ template<> struct body_t<MSG_TYPE::_MD_REQ> {
             char MDEntryTypeBid[6];
             char MDEntryTypeOffer[6];
             char NoRelatedSym[6];
-            char Symbol[4 + broker_settings::SymbolName.size()];
+            char Symbol[4 + SymbolName.size()]; //|55=???
         } field;
         char data[ sizeof(field) ];
     };

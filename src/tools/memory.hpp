@@ -7,9 +7,9 @@
 
 namespace ctrader::tools::memory {
 
-    using namespace ctrader::tools;
+    using namespace ctrader::tools::concepts;
 
-    template<std::size_t SIZE> requires concepts::is_32byte_alignable<SIZE>
+    template<std::size_t SIZE> requires is_32byte_alignable<SIZE>
     static inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void memcpy_32a(char* dst, const char* src){
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
@@ -20,7 +20,7 @@ namespace ctrader::tools::memory {
         }
     };
 
-    template<std::size_t SIZE, uint8_t REM = SIZE % 32> requires concepts::is_minimum_size<SIZE, 32>
+    template<std::size_t SIZE, uint8_t REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
     static inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void memcpy_32u(char* dst, const char* src){
 

@@ -79,7 +79,7 @@ namespace ctrader::data::message_data {
 
         template<> consteval message_t<MSG_TYPE::MD_REQ_SUB_DEPTH> new_message_from_type(){
             return new_message_from_fields<MSG_TYPE::MD_REQ_SUB_DEPTH>({
-                {"262", std::string(FieldIdSize, '0')},
+                {"262", std::string(FieldIDSize, '0')},
                 {"263", "1"}, {"264", "0"}, {"265", "1"}, {"267", "2"}, {"269", "0"}, {"269", "1"}, 
                 {"146", "1"}, {"55", std::string(broker_settings::SymbolName.data()) }
             });   

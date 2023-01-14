@@ -2,10 +2,13 @@
 
 #include <stdint.h>
 #include <x86intrin.h>
+#include "concepts.hpp"
 
 namespace ctrader::tools::protocol {
 
-    template<std::size_t SIZE, uint8_t REM = SIZE % 32> requires concepts::is_minimum_size<SIZE, 32>
+    using namespace ctrader::tools::concepts;
+
+    template<std::size_t SIZE, uint8_t REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
     static inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     uint8_t calc_checksum( const char* data ){
         const __m256i zeroVec = _mm256_setzero_si256();

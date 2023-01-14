@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+#include <cstddef>
+
 namespace ctrader::tools::concepts {
 
     template<std::size_t SIZE>
@@ -7,5 +10,8 @@ namespace ctrader::tools::concepts {
 
     template<std::size_t SIZE, std::size_t MIN>
     concept is_minimum_size = SIZE >= MIN;
+
+    template<std::size_t VAL>
+    concept is_power_of_2 = (VAL > 0) && !(VAL & (VAL - 1));
 
 } //ctrader::tools::concepts

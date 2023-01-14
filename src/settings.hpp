@@ -5,11 +5,12 @@
 
 namespace ctrader::settings {
 
-    constexpr uint8_t    HearthBeatIntervalSec = 30;
-    constexpr uint8_t    FieldIdSize = 6;
-    constexpr uint16_t   MsgThroughputSec = 115; // range {1 ... 1000}
-    constexpr bool       SSL = false;
-    constexpr char       SOHChar = '|'; //mostly used for debugging output, set to '\1' on release
+    constexpr uint8_t           HearthBeatIntervalSec = 30;
+    constexpr uint16_t          MsgThroughputSec = 115; // range {1 ... 1000}
+    constexpr bool              SSL = false;
+    constexpr char              SOHChar = '|'; //mostly used for debugging output, set to '\1' on release
+    constexpr std::string_view  SymbolName = "1";
+    constexpr uint8_t           FieldIDSize = 6;
 
     namespace broker {
 
@@ -32,8 +33,6 @@ namespace ctrader::settings {
         // all options need to be present at least once otherwise compile time error will occur
         // format size cannot be larger than 28 otherwise compile time error raised
         constexpr std::string_view  SendingTimeFormat = "%YYY%m%d-%H:%M:%S.%fffff";
-
-        constexpr std::string_view  SymbolName = "1";
 
         } // ic_markets_demo
 

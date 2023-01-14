@@ -5,9 +5,12 @@
 
 // #include "data/message_metadata.hpp"
 
-#include "data/message_data.hpp"
+// #include "data/message_data.hpp"
 
-// #include "data/id_lookup.hpp"
+// #include "data/field_id.hpp"
+
+
+
 
 int main(void){
 
@@ -30,25 +33,19 @@ int main(void){
     // }
 
 
-    using namespace ctrader::data::message_data;
-    auto& buff = MD_REQ_SUB_DEPTH;
+    // using namespace ctrader::data::message_data;
+    // auto& buff = MD_REQ_SUB_DEPTH;
 
-    printf("\n[%lu]: %.*s\n", sizeof(buff.data), sizeof(buff.data), buff.data);
+    // printf("\n[%lu]: %.*s\n", sizeof(buff.data), sizeof(buff.data), buff.data);
     
-    printf("\t[%lu]: %.*s\n", sizeof(buff.header.data), sizeof(buff.header.data), buff.header.data);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.meta_32a), sizeof(buff.header.meta_32a), buff.header.meta_32a);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.timestamp_32a), sizeof(buff.header.timestamp_32a), buff.header.timestamp_32a);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.remainder), sizeof(buff.header.remainder), buff.header.remainder);
+    // printf("\t[%lu]: %.*s\n", sizeof(buff.header.data), sizeof(buff.header.data), buff.header.data);
+    // printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.meta_32a), sizeof(buff.header.meta_32a), buff.header.meta_32a);
+    // printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.timestamp_32a), sizeof(buff.header.timestamp_32a), buff.header.timestamp_32a);
+    // printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.remainder), sizeof(buff.header.remainder), buff.header.remainder);
     
-    printf("\t[%lu]: %.*s\n", sizeof(buff.body.data), sizeof(buff.body.data), buff.body.data);
+    // printf("\t[%lu]: %.*s\n", sizeof(buff.body.data), sizeof(buff.body.data), buff.body.data);
     
-    printf("\t[%lu]: %.*s\n", sizeof(buff.cheksum), sizeof(buff.cheksum), buff.cheksum);
-
-
-    // using namespace ctrader::data::id_lookup;
-    // printf("MDReqIDKey=%s", MDReqIDKey);
-
-    
+    // printf("\t[%lu]: %.*s\n", sizeof(buff.cheksum), sizeof(buff.cheksum), buff.cheksum);
 
     return 0;
 }
