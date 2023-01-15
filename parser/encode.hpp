@@ -6,10 +6,11 @@
 #include "data/message_data.hpp"
 #include "data/timestamp.hpp"
 
-#include "tools/protocol.hpp"
 #include "tools/numbers.hpp"
 #include "tools/datetime.hpp"
 #include "tools/memory.hpp"
+
+#include "checksum.hpp"
 
 namespace ctrader::parser {
 
@@ -42,7 +43,7 @@ template<> void encode_message<MSG_TYPE::LOGON>(){
         timestamp::TimestampOffset
     );
 
-    const uint8_t cs = protocol::calc_checksum<sizeof(message_data::LOGON.data)-7>(message_data::LOGON.data);
+    const uint8_t cs = calc_checksum<sizeof(message_data::LOGON.data)-7>(message_data::LOGON.data);
     std::memset(message_data::LOGON.checksum+4, '0', 3);
     numbers::to_string(
         message_data::LOGON.checksum+4,
@@ -64,7 +65,7 @@ template<> void encode_message<MSG_TYPE::TEST_REQ>(){
         timestamp::TimestampOffset
     );
 
-    const uint8_t cs = protocol::calc_checksum<sizeof(message_data::TEST_REQ.data)-7>(message_data::TEST_REQ.data);
+    const uint8_t cs = calc_checksum<sizeof(message_data::TEST_REQ.data)-7>(message_data::TEST_REQ.data);
     std::memset(message_data::TEST_REQ.checksum+4, '0', 3);
     numbers::to_string(
         message_data::TEST_REQ.checksum+4,

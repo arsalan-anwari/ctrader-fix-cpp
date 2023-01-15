@@ -31,22 +31,24 @@ int main(void){
     encode_message<MSG_TYPE::LOGON>();
 
     // main loop
-    for(int i=0; i<100; i++){
-        printf("\nRUN %i:\n", i);
+    int i;
+    for(i=0; i<100; i++){
 
         begin = std::chrono::steady_clock::now();
         encode_message<MSG_TYPE::LOGON>();
         end = std::chrono::steady_clock::now();
 
-        printf("\t encode LOGON took %ins\n", std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count());
+        printf("%i ", std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count());
 
         begin = std::chrono::steady_clock::now();
         encode_message<MSG_TYPE::TEST_REQ>();
         end = std::chrono::steady_clock::now();
 
-        printf("\t encode TEST_REQ took %ins\n", std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count());
+        printf("%i\n", std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count());
 
     }
+
+    printf("\nRUN %i:\n", i);
 
     return 0;
 }

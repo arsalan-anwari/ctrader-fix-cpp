@@ -2,9 +2,9 @@
 
 #include <stdint.h>
 #include <x86intrin.h>
-#include "concepts.hpp"
+#include "tools/concepts.hpp"
 
-namespace ctrader::tools::protocol {
+namespace ctrader::parser {
 
     using namespace ctrader::tools::concepts;
 
@@ -37,5 +37,5 @@ namespace ctrader::tools::protocol {
 
 
     
-} // namespace ctrader::tools::protocol
+} // namespace ctrader::parser
 
