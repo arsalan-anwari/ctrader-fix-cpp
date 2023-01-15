@@ -1,13 +1,9 @@
 #include <stdio.h>
-
-// #include <chrono>
-// #include <algorithm>
-// #include "tools/protocol.hpp"
+#include <chrono>
 
 #include "data/message_data.hpp"
 #include "parser/encode.hpp"
 
-// #include "data/field_id.hpp"
 
 void print_buff(const auto& buff){
     printf("\n[%lu]: %.*s\n", sizeof(buff.data), sizeof(buff.data), buff.data);
@@ -28,43 +24,29 @@ void print_buff(const auto& buff){
 
 int main(void){
 
-    // 126
-    // char data[] = "8=FIX.4.4|9=127|35=1|34=000002|52=20230114-23:21:23.995659|49=demo.icmarkets.8536054|56=cServer|57=QUOTE|50=QUOTE|112=SOME_RANDOM_TEXT_TO_TEST|";
-    // std::replace(data, data+sizeof(data), '|', '\1');
-
-    // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    // uint8_t checksum = ctrader::tools::protocol::calc_checksum<sizeof(data)-1>(data);
-    // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-    // printf("data: %s\n\tchecksum: %i\n\ttime(ns): %i\n", data, checksum, std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count());
-
-
+    
     using namespace ctrader::data;
-    // using namespace ctrader::data::metadata;
     using namespace ctrader::parser;
+    std::chrono::steady_clock::time_point begin, end;
+    encode_message<MSG_TYPE::LOGON>();
 
-    // auto& buffLookup = message_metadata::LOGON;
+    // main loop
+    for(int i=0; i<100; i++){
+        printf("\nRUN %i:\n", i);
 
-    // for(uint8_t i=0; i<MetadataInfoAlias.count; i++){
-    //     MetadataInfoAlias.select_idx = i;
-    //     printf("\n[%i]: %.*s\n", MetadataInfoAlias.select_idx, MetadataInfoAlias.size-MetadataInfoAlias.offset, buffLookup[i]+MetadataInfoAlias.offset);
-    //     MetadataInfoAlias.offset--;
-    // }
+        begin = std::chrono::steady_clock::now();
+        encode_message<MSG_TYPE::LOGON>();
+        end = std::chrono::steady_clock::now();
 
-    auto& buff = message_data::LOGON;
-    print_buff(buff);
+        printf("\t encode LOGON took %ins\n", std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count());
 
-    encode::Encoder encoder;
+        begin = std::chrono::steady_clock::now();
+        encode_message<MSG_TYPE::TEST_REQ>();
+        end = std::chrono::steady_clock::now();
 
-    encoder.modify_message<encode::MSG_TYPE::LOGON>();
+        printf("\t encode TEST_REQ took %ins\n", std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count());
 
-    printf("\n===AFTER MODIFY (normal)===\n");
-    print_buff(buff);
-
-    printf("\n===AFTER MODIFY (manual)===\n");
-    encoder.__msg_seq_num = 20;
-    encoder.modify_message<encode::MSG_TYPE::LOGON>();
-    print_buff(buff);
+    }
 
     return 0;
 }

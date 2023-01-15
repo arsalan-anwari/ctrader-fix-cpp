@@ -32,7 +32,7 @@ namespace ctrader::data::message_data {
             const field_t HeaderFields[8] = {
                 field_t{"9", std::string( bodylenStr.data, bodylenStr.data+bodylenStr.size ) },
                 field_t{"35", std::string(1, msgType) },
-                field_t{"34", std::string( 18, '0' ) },
+                field_t{"34", std::string( MsgSeqNumDigitSize, '0' ) },
                 field_t{"52", std::string(TimestampBuffer.data, TimestampBuffer.data+TimestampSize) },
                 field_t{"49", std::string(broker_settings::SenderCompID.data()) },
                 field_t{"56", std::string(broker_settings::TargetCompID.data()) },
@@ -85,9 +85,9 @@ namespace ctrader::data::message_data {
 
         template<> consteval message_t<MSG_TYPE::MD_REQ_SUB_DEPTH> new_message_from_type(){
             return new_message_from_fields<MSG_TYPE::MD_REQ_SUB_DEPTH>({
-                {"262", std::string(FieldIDSize, '0')},
+                {"262", std::string(FieldIDDigitSize, '0')},
                 {"263", "1"}, {"264", "0"}, {"265", "1"}, {"267", "2"}, {"269", "0"}, {"269", "1"}, 
-                {"146", "1"}, {"55", std::string(SymbolName.data()) }
+                {"146", "1"}, {"55", std::string(SymbolFormat.size(), '0') }
             });   
         }
 

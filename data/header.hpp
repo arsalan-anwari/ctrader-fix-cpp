@@ -16,7 +16,7 @@ namespace ctrader::data::header {
                 2 + broker_settings::BeginString.size() + // 8=FIX.4.4
                 3 + 3 + // |9=???
                 4 + 1 + // |35=?
-                4 + 18 + // |34={0:18}
+                4 + MsgSeqNumDigitSize + // |34={0:MsgSeqNumDigitSize}
                 timestamp::TimestampSize + 4 + // |52=SendingTimeFormat -> 24-32
                 broker_settings::SenderCompID.size() + 4 + // |49=SenderCompID
                 broker_settings::TargetCompID.size() + 4 + // |56=TargetCompID
@@ -30,7 +30,7 @@ namespace ctrader::data::header {
                 2 + broker_settings::BeginString.size() + // 8=FIX.4.4
                 3 + 3 + // |9=???
                 4 + 1 + // |35=?
-                4 + 18 + // |34={0:18}
+                4 + MsgSeqNumDigitSize + // |34={0:MsgSeqNumDigitSize}
                 32; // |52=SendingTimeFormat -> 24-32
 
             return total - begin;
@@ -48,7 +48,7 @@ namespace ctrader::data::header {
                 char BeginString[ 2 + broker_settings::BeginString.size() ]; // 8=FIX.4.4
                 char BodyLength[3 + 3]; // |9=???
                 char MsgType[4 + 1]; // |35=?
-                char MsgSeqNum[4 + 18]; // |34={0:18}
+                char MsgSeqNum[4 + MsgSeqNumDigitSize]; // |34={0:MsgSeqNumDigitSize}
                 char timestamp_32a[32]; // |52=SendingTimeFormat|49=
                 char remainder[ HeaderRemainderSize ];
             } field;

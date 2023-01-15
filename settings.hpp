@@ -5,11 +5,17 @@
 
 namespace ctrader::settings {
 
+    #define _ENABLE     1
+    #define _DISABLE    0
+
+    #define _MSG_SEQ_NUM_OVERFLOW_CORRECTION _DISABLE
+
     constexpr uint8_t           HearthBeatIntervalSec = 30;
-    constexpr uint16_t          MsgThroughputSec = 100; // range {1 ... 2000}
+    constexpr uint8_t           MsgSeqNumDigitSize = 19; // range {1 ... 19}
+    constexpr uint8_t           FieldIDDigitSize = 6;
+
     constexpr char              SOHChar = '|'; //mostly used for debugging output, set to '\1' on release
-    constexpr std::string_view  SymbolName = "1";
-    constexpr uint8_t           FieldIDSize = 6;
+    constexpr std::string_view  SymbolFormat = "n";
 
     namespace broker {
 
