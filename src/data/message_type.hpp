@@ -60,7 +60,7 @@ template<> struct body_t<MSG_TYPE::LOGON> {
             char Username[5 + broker_settings::Username.size()];
             char Password[5 + broker_settings::Password.size()];
         } field;
-        char data[ sizeof(field) ];
+        char raw[ sizeof(field) ];
     };
 };
 
@@ -69,7 +69,7 @@ template<> struct body_t<MSG_TYPE::TEST_REQ> {
         struct {
             char TestReqID[ TestReqIDMinsize + 5 ];
         } field;
-        char data[ sizeof(field) ];
+        char raw[ sizeof(field) ];
     };
 };
 
@@ -86,7 +86,7 @@ template<> struct body_t<MSG_TYPE::_MD_REQ> {
             char NoRelatedSym[6];
             char Symbol[4 + SymbolName.size()]; //|55=???
         } field;
-        char data[ sizeof(field) ];
+        char raw[ sizeof(field) ];
     };
 };
 

@@ -14,7 +14,7 @@ namespace ctrader::data::message {
             struct {
                 ctrader::data::header::header_t header;
                 ctrader::data::message_type::internal::body_t<T> body;
-                char cheksum[8];
+                char checksum[8];
             };
         };
     };
