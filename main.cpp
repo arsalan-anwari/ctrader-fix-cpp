@@ -5,10 +5,26 @@
 // #include "tools/protocol.hpp"
 
 #include "data/message_data.hpp"
-
-// #include "parser/encode.hpp"
+#include "parser/encode.hpp"
 
 // #include "data/field_id.hpp"
+
+void print_buff(const auto& buff){
+    printf("\n[%lu]: %.*s\n", sizeof(buff.data), sizeof(buff.data), buff.data);
+    
+    printf("\t[%lu]: %.*s\n", sizeof(buff.header.raw), sizeof(buff.header.raw), buff.header.raw);
+    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.BeginString), sizeof(buff.header.field.BeginString), buff.header.field.BeginString);
+    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.BodyLength), sizeof(buff.header.field.BodyLength), buff.header.field.BodyLength);
+    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.MsgType), sizeof(buff.header.field.MsgType), buff.header.field.MsgType);
+    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.MsgSeqNum), sizeof(buff.header.field.MsgSeqNum), buff.header.field.MsgSeqNum);
+    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.timestamp_32a), sizeof(buff.header.field.timestamp_32a), buff.header.field.timestamp_32a);
+    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.remainder), sizeof(buff.header.field.remainder), buff.header.field.remainder);
+    
+    printf("\t[%lu]: %.*s\n", sizeof(buff.body.raw), sizeof(buff.body.raw), buff.body.raw);
+    
+    printf("\t[%lu]: %.*s\n", sizeof(buff.checksum), sizeof(buff.checksum), buff.checksum);
+}
+
 
 int main(void){
 
@@ -25,7 +41,7 @@ int main(void){
 
     using namespace ctrader::data;
     // using namespace ctrader::data::metadata;
-    // using namespace ctrader::parser;
+    using namespace ctrader::parser;
 
     // auto& buffLookup = message_metadata::LOGON;
 
@@ -36,36 +52,19 @@ int main(void){
     // }
 
     auto& buff = message_data::LOGON;
+    print_buff(buff);
 
-    printf("\n[%lu]: %.*s\n", sizeof(buff.data), sizeof(buff.data), buff.data);
-    
-    printf("\t[%lu]: %.*s\n", sizeof(buff.header.raw), sizeof(buff.header.raw), buff.header.raw);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.BeginString), sizeof(buff.header.field.BeginString), buff.header.field.BeginString);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.BodyLength), sizeof(buff.header.field.BodyLength), buff.header.field.BodyLength);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.MsgType), sizeof(buff.header.field.MsgType), buff.header.field.MsgType);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.MsgSeqNum), sizeof(buff.header.field.MsgSeqNum), buff.header.field.MsgSeqNum);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.timestamp_32a), sizeof(buff.header.field.timestamp_32a), buff.header.field.timestamp_32a);
-    printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.field.remainder), sizeof(buff.header.field.remainder), buff.header.field.remainder);
-    
-    printf("\t[%lu]: %.*s\n", sizeof(buff.body.raw), sizeof(buff.body.raw), buff.body.raw);
-    
-    printf("\t[%lu]: %.*s\n", sizeof(buff.checksum), sizeof(buff.checksum), buff.checksum);
+    encode::Encoder encoder;
 
-    // encode::Encoder encoder;
-    // encoder.modify_message<encode::MSG_TYPE::LOGON>();
+    encoder.modify_message<encode::MSG_TYPE::LOGON>();
 
-    // printf("\n===AFTER ENCODE===\n");
+    printf("\n===AFTER MODIFY (normal)===\n");
+    print_buff(buff);
 
-    // printf("\n[%lu]: %.*s\n", sizeof(buff.data), sizeof(buff.data), buff.data);
-    
-    // printf("\t[%lu]: %.*s\n", sizeof(buff.header.raw), sizeof(buff.header.raw), buff.header.raw);
-    // printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.meta_32a), sizeof(buff.header.meta_32a), buff.header.meta_32a);
-    // printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.timestamp_32a), sizeof(buff.header.timestamp_32a), buff.header.timestamp_32a);
-    // printf("\t\t[%lu]: %.*s\n", sizeof(buff.header.remainder), sizeof(buff.header.remainder), buff.header.remainder);
-    
-    // printf("\t[%lu]: %.*s\n", sizeof(buff.body.raw), sizeof(buff.body.raw), buff.body.raw);
-    
-    // printf("\t[%lu]: %.*s\n", sizeof(buff.checksum), sizeof(buff.checksum), buff.checksum);
+    printf("\n===AFTER MODIFY (manual)===\n");
+    encoder.__msg_seq_num = 20;
+    encoder.modify_message<encode::MSG_TYPE::LOGON>();
+    print_buff(buff);
 
     return 0;
 }
