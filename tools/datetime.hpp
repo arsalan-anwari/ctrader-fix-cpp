@@ -7,18 +7,14 @@
 
 namespace ctrader::tools::datetime {
 
-    using gmt_offset_t = struct {
-            uint8_t year_offset;
-            uint8_t month_offset;
-            uint8_t day_offset;
-            uint8_t hour_offset;
-            uint8_t min_offset;
-            uint8_t sec_offset;
-            uint8_t subsec_offset;
-        }; 
+    namespace internal{
+
+        static const char* zero_buff = "|52=00000000-00:00:00.000000|49=";
+
+    }
 
     static inline __attribute__((always_inline))
-    void current_timestamp_from_offset( char* out, const char* zero_buff, const gmt_offset_t& offset){
+    void current_timestamp_from_offset( char* out ){
         using namespace std::chrono;
         using namespace ctrader::tools;
         
@@ -30,16 +26,16 @@ namespace ctrader::tools::datetime {
         hh_mm_ss hms{local_time-local_time_in_days};
         
         //clear buffer with zeros to allow signle digits to be represented correct as '05' vs 'n5'
-        memory::memcpy_32(out, zero_buff); 
+        memory::memcpy_32(out, internal::zero_buff); 
 
-        numbers::to_string(out+offset.year_offset, out+offset.year_offset+4, int{ymd.year()});
-        numbers::to_string(out+offset.month_offset, out+offset.month_offset+2, unsigned{ymd.month()});
-        numbers::to_string(out+offset.day_offset, out+offset.day_offset+2, unsigned{ymd.day()});
+        numbers::to_string(out+4, out+8, int{ymd.year()});
+        numbers::to_string(out+8, out+10, unsigned{ymd.month()});
+        numbers::to_string(out+10, out+12, unsigned{ymd.day()});
 
-        numbers::to_string(out+offset.hour_offset, out+offset.hour_offset+2, hms.hours().count());
-        numbers::to_string(out+offset.min_offset, out+offset.min_offset+2, hms.minutes().count());
-        numbers::to_string(out+offset.sec_offset, out+offset.sec_offset+2, hms.seconds().count());
-        numbers::to_string(out+offset.subsec_offset, out+offset.subsec_offset+6, duration_cast<microseconds>(hms.subseconds()).count());
+        numbers::to_string(out+13, out+15, hms.hours().count());
+        numbers::to_string(out+16, out+18, hms.minutes().count());
+        numbers::to_string(out+19, out+21, hms.seconds().count());
+        numbers::to_string(out+22, out+28, duration_cast<microseconds>(hms.subseconds()).count());
     }
 
 } //ctrader::tools::datetime

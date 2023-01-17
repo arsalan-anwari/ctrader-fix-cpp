@@ -1,6 +1,6 @@
 #pragma once
 
-#include "timestamp.hpp"
+#include "settings.hpp"
 
 namespace ctrader::data::header {
 
@@ -8,26 +8,25 @@ namespace ctrader::data::header {
 
     namespace internal {
 
-        using namespace ctrader::data;
-        using namespace ctrader::tools;
+        using namespace ctrader::settings;
 
         consteval uint32_t calc_header_size(){
             return (
-                2 + broker_settings::BeginString.size() + // 8=FIX.4.4
+                2 + 7 + // 8=FIX.4.4
                 3 + 3 + // |9=???
                 4 + 1 + // |35=?
                 4 + MsgSeqNumDigitSize + // |34={0:MsgSeqNumDigitSize}
-                timestamp::TimestampSize + 4 + // |52=SendingTimeFormat -> 24-32
+                24 + 4 + // |52=SendingTimeFormat -> 24-32
                 broker_settings::SenderCompID.size() + 4 + // |49=SenderCompID
-                broker_settings::TargetCompID.size() + 4 + // |56=TargetCompID
-                broker_settings::TargetSubID.size() + 4 + // |57=TargetSubID
-                broker_settings::SenderSubID.size() + 4 // |50=SenderSubID
+                7 + 4 + // |56=TargetCompID
+                5 + 4 + // |57=TargetSubID
+                5 + 4 // |50=SenderSubID
             );
         };
 
         consteval uint32_t calc_header_remainder_size(uint32_t total){
             uint32_t begin = 
-                2 + broker_settings::BeginString.size() + // 8=FIX.4.4
+                2 + 7 + // 8=FIX.4.4
                 3 + 3 + // |9=???
                 4 + 1 + // |35=?
                 4 + MsgSeqNumDigitSize + // |34={0:MsgSeqNumDigitSize}
@@ -43,15 +42,17 @@ namespace ctrader::data::header {
 
     struct header_t {
         union {
-            char raw[ HeaderBuffSize ];
             struct {
-                char BeginString[ 2 + broker_settings::BeginString.size() ]; // 8=FIX.4.4
+                char BeginString[ 2 + 7 ]; // 8=FIX.4.4
                 char BodyLength[3 + 3]; // |9=???
                 char MsgType[4 + 1]; // |35=?
                 char MsgSeqNum[4 + MsgSeqNumDigitSize]; // |34={0:MsgSeqNumDigitSize}
                 char timestamp_32a[32]; // |52=SendingTimeFormat|49=
-                char remainder[ HeaderRemainderSize ];
+                char SenderCompID[ broker_settings::SenderCompID.size() ]; // SenderCompID
+                char TargetCompID[ 4 + 7 ]; // |56=cServer
+                char TargetSubID[4 + 5]; // |57={QUOTE?TRADE}
             } field;
+            char raw[ sizeof(field) ];
         };
     };
 

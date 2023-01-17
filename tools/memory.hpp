@@ -59,13 +59,6 @@ namespace ctrader::tools::memory {
         const constexpr T* operator[](std::size_t i) const { return &data[ chunksize*i ]; }
     };
 
-    using chunk_info_t = struct {
-        uint8_t size;
-        uint8_t count;
-        uint8_t offset;
-        uint8_t select_idx = 0;
-    };
-    
     template<typename T, std::size_t N>
     constexpr simple_buffer_t<T, N> simple_buffer_from_buffer(const T* buff){
         simple_buffer_t<T, N> res;

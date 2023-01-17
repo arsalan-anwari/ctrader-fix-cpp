@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+
+#include "tools/numbers.hpp"
 #include "header.hpp"
 
 namespace ctrader::data::message_type {
@@ -16,7 +19,6 @@ namespace ctrader::data::message_type {
     };
 
     namespace internal{
-        using namespace ctrader::tools;
         using namespace ctrader::settings;
         using namespace ctrader::data;
 
@@ -50,6 +52,7 @@ namespace ctrader::data::message_type {
 namespace ctrader::data::message_type::internal{
 
 using namespace ctrader::settings;
+using namespace ctrader::tools;
 
 template<> struct body_t<MSG_TYPE::LOGON> {
     union{
@@ -76,15 +79,15 @@ template<> struct body_t<MSG_TYPE::TEST_REQ> {
 template<> struct body_t<MSG_TYPE::_MD_REQ> {
     union{
         struct {
-            char MDReqID[5 + FieldIDDigitSize];  
-            char SubscriptionRequestType[6]; 
-            char MarketDepth[6];
-            char MarketDepthMDUpdateType[6];
-            char NoMDEntryTypes[6];
-            char MDEntryTypeBid[6];
-            char MDEntryTypeOffer[6];
-            char NoRelatedSym[6];
-            char Symbol[4 + SymbolFormat.size()]; //|55=???
+            char MDReqID[5 + FieldIDDigitSize];  // |262={0:FieldIDDigitSize}
+            char SubscriptionRequestType[5 + 1]; // |263=?
+            char MarketDepth[5 + 1]; // |264=?
+            char MarketDepthMDUpdateType[5 + 1]; // |265=1
+            char NoMDEntryTypes[5 + 1]; // |267=2
+            char MDEntryTypeBid[5 + 1]; // |269=0
+            char MDEntryTypeOffer[5 + 1]; // |269=1
+            char NoRelatedSym[5 + 1]; // |146=1
+            char Symbol[4 + SymbolIDDigitSize]; // |55={0:SymbolIDDigitSize}
         } field;
         char raw[ sizeof(field) ];
     };

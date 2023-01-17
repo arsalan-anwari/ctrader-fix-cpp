@@ -4,8 +4,7 @@
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
 # Folders
-build/
-.vscode/
 
 # Files
 CMakeLists.txt
+main.cpp
