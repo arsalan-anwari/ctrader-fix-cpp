@@ -24,10 +24,17 @@ filePath = absPath + "/../data/field_id.hpp"
 keyNum = 1024
 keySize = 6
 
+if keyNum > 65536:
+        print("WARNING: Cannot generate more than 65536 keys, maximum of 65536 is used!")
+        keyNum = 65536
+
 with open(filePath, "w") as file:
+
     file.write("#pragma once\n\n")
+    file.write("#include <stdint.h>\n\n")
     file.write("namespace ctrader::data::field_id{\n\n")
-    file.write("\tconst char* const keys[] = {\n")
+    file.write("\tconstexpr uint16_t KeyNum = " + str(keyNum) + ";\n\n" )
+    file.write("\tconst char* const Keys[] = {\n")
 
     for i in range(0, keyNum-1):
         key = newKey(keySize)

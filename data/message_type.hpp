@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <type_traits>
 
 #include "tools/numbers.hpp"
 #include "header.hpp"
@@ -12,6 +13,12 @@ namespace ctrader::data::message_type {
         LOGON, 
         MD_REQ_SUB_DEPTH, MD_REQ_SUB_SPOT, MD_REQ_UNSUB_DEPTH, MD_REQ_UNSUB_SPOT, 
     };
+
+    #define __COMPILE_TIME_CHECK_MSG_TYPE(MSG_VALUE, MSG_TYPE_COMPARE) \
+        std::is_same_v< \
+            std::conditional_t<(MSG_VALUE == MSG::MSG_TYPE_COMPARE), std::true_type, std::false_type>, \
+            std::true_type\
+        >\
 
     enum class CONN : uint8_t {
         QUOTE, TRADE

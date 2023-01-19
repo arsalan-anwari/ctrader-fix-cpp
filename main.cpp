@@ -3,7 +3,7 @@
 #include <numeric>
 
 #include "data/message_data.hpp"
-// #include "data/field_id.hpp"
+#include "data/field_id.hpp"
 #include "parser/encode.hpp"
 #include "parser/encode_tools.hpp"
 
@@ -29,58 +29,67 @@ void print_buff(const auto& buff){
 
 int main(void){
 
-// Initialiaze data for tests
     using namespace ctrader::data;
     using namespace ctrader::parser::encode;
     using namespace ctrader::parser::encode_tools;
 
-    ClockSync<CONN::QUOTE> quote_clock(500U);
-    // ClockSync<CONN::TRADE> trade_clock(500U);
+// Sanity Check
+    // printf("\n====== BEFORE ENCODE =====\n");
+    // print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
 
-    Encoder<CONN::QUOTE> quote_encoder;
-    // Encoder<CONN::TRADE> trade_encoder;
+    // uint64_t symbol = 323;
+    // printf("\n====== AFTER ENCODE =====\n");
+    // Encoder<CONN::QUOTE> encoder;
+    // encoder.encode_message<MSG::MD_REQ_SUB_DEPTH>("ddsfsa", symbol);
+    // print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
+
+// Initialiaze data for tests
+    auto symbol = static_cast<uint64_t>(723894UL);
+
+    auto& MSG_DATA_TO_TEST = message_data::quote::MD_REQ_SUB_DEPTH;
+    constexpr MSG MSG_TYPE_TO_TEST = MSG::MD_REQ_SUB_DEPTH;
+    constexpr CONN CONN_TYPE_TO_TEST = CONN::QUOTE;
+    #define MSG_TYPE_PARAMS_TO_TEST(i) field_id::Keys[i], symbol
+    constexpr int MSG_LOOP_COUNT = 5;
+
+    ClockSync<CONN_TYPE_TO_TEST> clock(500U);
+    Encoder<CONN_TYPE_TO_TEST> encoder;
 
     std::chrono::steady_clock::time_point start_loop, end_encode, end_loop;
-    constexpr int loop_count = 10;
-    int vals_normal[loop_count] = { 0 };
-    int vals_warmed[loop_count] = { 0 };
+    int vals_normal[MSG_LOOP_COUNT] = { 0 };
+    int vals_warmed[MSG_LOOP_COUNT] = { 0 };
 
     printf("\n====== BEFORE ENCODE =====\n");
-    print_buff(message_data::quote::LOGON);
-    // print_buff(message_data::trade::LOGON);
-
-
-    // quote_encoder.encode_message<MSG::LOGON>();
-    // trade_encoder.encode_message<MSG::LOGON>();
+    print_buff(MSG_DATA_TO_TEST);
 
 // Test Normal
-    for(int i=0; i<loop_count; i++){
+    for(int i=0; i<MSG_LOOP_COUNT; i++){
         start_loop = std::chrono::steady_clock::now();
         
         // encode message
-        quote_encoder.encode_message<MSG::LOGON>();
+        encoder.encode_message<MSG_TYPE_TO_TEST>(MSG_TYPE_PARAMS_TO_TEST(i));
         end_encode = std::chrono::steady_clock::now();
 
         // Store encode message time in array
         vals_normal[i] = std::chrono::duration_cast<std::chrono::nanoseconds> (end_encode - start_loop).count();
     }
 
-    quote_encoder.reset_seq_num();
+    encoder.reset_seq_num();
 
 // Test Warmed
 
     // pre_fetch_cache at init
-    quote_encoder.encode_message<MSG::LOGON>();
-    quote_encoder.encode_message<MSG::LOGON>();
-    quote_encoder.encode_message<MSG::LOGON>();
+    encoder.encode_message<MSG_TYPE_TO_TEST>(MSG_TYPE_PARAMS_TO_TEST(0));
+    encoder.encode_message<MSG_TYPE_TO_TEST>(MSG_TYPE_PARAMS_TO_TEST(0));
+    encoder.encode_message<MSG_TYPE_TO_TEST>(MSG_TYPE_PARAMS_TO_TEST(0));
     
-    quote_encoder.reset_seq_num();
+    encoder.reset_seq_num();
 
-    for(int i=0; i<loop_count; i++){
+    for(int i=0; i<MSG_LOOP_COUNT; i++){
         start_loop = std::chrono::steady_clock::now();
         
         // encode message
-        quote_encoder.encode_message<MSG::LOGON>();
+        encoder.encode_message<MSG_TYPE_TO_TEST>(MSG_TYPE_PARAMS_TO_TEST(i));
         end_encode = std::chrono::steady_clock::now();
 
         // Store encode message time in array
@@ -90,20 +99,21 @@ int main(void){
         end_loop = std::chrono::steady_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::nanoseconds> (end_loop - start_loop);
         
-        quote_clock.sync_and_warm_cache<MSG::LOGON>(dur);
+        clock.sync_and_warm_cache<MSG_TYPE_TO_TEST>(dur);
     }
 
     printf("\n====== AFTER ENCODE =====\n");
-    print_buff(message_data::quote::LOGON);
-    // print_buff(message_data::trade::LOGON);
+    encoder.encode_message<MSG_TYPE_TO_TEST>("jsjkdd", 133);
+    print_buff(MSG_DATA_TO_TEST);
+    
 
 // Results
     printf("\n====== RESULTS =====\n");
-    auto sum_normal = std::accumulate(vals_normal, vals_normal+loop_count, 0);
-    auto sum_warmed = std::accumulate(vals_warmed, vals_warmed+loop_count, 0);
-    printf("\t- loop_count=%i\n", loop_count );
-    printf("\t- sum_normal=%ins\n", (sum_normal/loop_count) );
-    printf("\t- sum_warmed=%ins\n", (sum_warmed/loop_count) );
+    auto sum_normal = std::accumulate(vals_normal, vals_normal+MSG_LOOP_COUNT, 0);
+    auto sum_warmed = std::accumulate(vals_warmed, vals_warmed+MSG_LOOP_COUNT, 0);
+    printf("\t- MSG_LOOP_COUNT=%u\n", MSG_LOOP_COUNT );
+    printf("\t- sum_normal=%uns\n", (sum_normal/MSG_LOOP_COUNT) );
+    printf("\t- sum_warmed=%uns\n", (sum_warmed/MSG_LOOP_COUNT) );
 
     return 0;
 }
