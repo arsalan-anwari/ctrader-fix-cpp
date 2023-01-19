@@ -54,7 +54,7 @@ namespace internal {
     template<> void prepare_message<MSG::TEST_REQ, CONN::QUOTE>(){ __PREPARE_DEFAULT(quote::TEST_REQ); };
     template<> void prepare_message<MSG::TEST_REQ, CONN::TRADE>(){ __PREPARE_DEFAULT(trade::TEST_REQ); };
 
-    template<> void prepare_message<MSG::MD_REQ_SUB_DEPTH, CONN::QUOTE>(const char* mdReqId, const uint64_t symbol){ 
+    template<> void prepare_message<MSG::MD_REQ_SUB_DEPTH, CONN::QUOTE>(const char* mdReqId, const int symbol){ 
         __PREPARE_HEADER(quote::MD_REQ_SUB_DEPTH);
         std::memcpy(message_data::quote::MD_REQ_SUB_DEPTH.body.field.MDReqID+5, mdReqId, FieldIDDigitSize);
         std::memset(message_data::quote::MD_REQ_SUB_DEPTH.body.field.Symbol+4, '0', SymbolIDDigitSize);

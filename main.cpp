@@ -44,12 +44,12 @@ int main(void){
     // print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
 
 // Initialiaze data for tests
-    auto symbol = static_cast<uint64_t>(723894UL);
+    //auto symbol = static_cast<uint64_t>(723894UL);
 
     auto& MSG_DATA_TO_TEST = message_data::quote::MD_REQ_SUB_DEPTH;
     constexpr MSG MSG_TYPE_TO_TEST = MSG::MD_REQ_SUB_DEPTH;
     constexpr CONN CONN_TYPE_TO_TEST = CONN::QUOTE;
-    #define MSG_TYPE_PARAMS_TO_TEST(i) field_id::Keys[i], symbol
+    #define MSG_TYPE_PARAMS_TO_TEST(i) field_id::Keys[i], 242243
     constexpr int MSG_LOOP_COUNT = 5;
 
     ClockSync<CONN_TYPE_TO_TEST> clock(500U);
@@ -103,7 +103,7 @@ int main(void){
     }
 
     printf("\n====== AFTER ENCODE =====\n");
-    encoder.encode_message<MSG_TYPE_TO_TEST>("jsjkdd", 133);
+    encoder.encode_message<MSG_TYPE_TO_TEST>(MSG_TYPE_PARAMS_TO_TEST(0));
     print_buff(MSG_DATA_TO_TEST);
     
 

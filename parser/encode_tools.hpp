@@ -39,7 +39,7 @@ struct ClockSync {
     inline __attribute__((always_inline))
     void sync_and_warm_cache( const TIME_PERIOD & elapsed ){
         if constexpr ( __COMPILE_TIME_CHECK_MSG_TYPE(M, MD_REQ_SUB_DEPTH) ){
-            internal::sawc<M, C, TIME_PERIOD>( clock, elapsed, internal::dummyFieldID.c_str(), static_cast<uint64_t>(0) ); 
+            internal::sawc<M, C, TIME_PERIOD>( clock, elapsed, internal::dummyFieldID.c_str(), 0 ); 
         } else {
             internal::sawc<M, C, TIME_PERIOD>( clock, elapsed ); 
         }
