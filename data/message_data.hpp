@@ -6,26 +6,26 @@
 #include "message.hpp"
 
 namespace ctrader::data::message_data {
-    using MSG_TYPE = ctrader::data::message_type::MSG_TYPE;
-
-    using namespace ctrader::data::message;
+    using MSG = ctrader::data::message_type::MSG;
+    using CONN = ctrader::data::message_type::CONN;
 
     namespace internal{
+        using namespace ctrader::data::message;
         using namespace ctrader::data::message_type;
         using namespace ctrader::tools;
         using namespace ctrader::settings;
         
-        template<MSG_TYPE T>
-        consteval message_t<T> new_message_from_fields( std::initializer_list<field_t> fields ){
+        template<MSG T>
+        consteval message_t<T> new_message_from_fields( CONN conn, std::initializer_list<field_t> fields ){
             message_t<T> buff;
-            const char msgType = ctrader::data::message_type::internal::MSG_TYPE_LOOKUP[static_cast<uint8_t>(T)];
+            const char msgType = ctrader::data::message_type::internal::MSG_LOOKUP[static_cast<uint8_t>(T)];
             const uint16_t bodylen = ( BodyLengthHeaderPart + sizeof(buff.body.raw));
     
             static_assert(bodylen >= 100, "Cannot generate message_data as some messages have a 'BodyLength' field value (9=...) lower than 100!");
             static_assert(bodylen <= 999, "Cannot generate message_data as some messages have a 'BodyLength' field value (9=...) higher than 999!");
             
-            //buff.bodyLength = bodylen;
             auto bodylenStr = numbers::to_simple_buffer<3>(bodylen);
+            std::string targetSubID = (conn == CONN::QUOTE) ? "QUOTE" : "TRADE";
 
             std::string data;
             data += std::string("8=FIX.4.4") + SOHChar;
@@ -37,7 +37,7 @@ namespace ctrader::data::message_data {
                 field_t{"52", std::string(24, '0') },
                 field_t{"49", std::string(broker_settings::SenderCompID.data()) },
                 field_t{"56", std::string("cServer") },
-                field_t{"57", std::string("QUOTE") }
+                field_t{"57", targetSubID }
             };
             
             for(uint8_t i=0; i<7; i++){ data += ( HeaderFields[i].key + "=" + HeaderFields[i].value + SOHChar ); }
@@ -51,21 +51,14 @@ namespace ctrader::data::message_data {
             return buff;
         };
 
-        template<MSG_TYPE T>
-        consteval message_t<T> new_message_from_type() {
-            static_assert(T != MSG_TYPE::_MD_REQ, 
-            "Cannot create Message type 'MD_REQ' as this is a generic interface." 
-            "Use types one of type {'MD_REQ_SUB_DEPTH', 'MD_REQ_SUB_SPOT', 'MD_REQ_UNSUB_DEPTH', 'MD_REQ_UNSUB_SPOT'} instead!"
-            );
+        template<MSG T>
+        consteval message_t<T> new_message_from_type(CONN conn);
 
-            return message_t<T>{};
-        }
-
-        template<> consteval message_t<MSG_TYPE::LOGON> new_message_from_type(){
+        template<> consteval message_t<MSG::LOGON> new_message_from_type(CONN conn){
 
             auto hearthBeat = numbers::to_simple_buffer<numbers::digit_count(HearthBeatIntervalSec)>(HearthBeatIntervalSec);
             
-            return new_message_from_fields<MSG_TYPE::LOGON>({
+            return new_message_from_fields<MSG::LOGON>(conn, {
                 {"98", "0" },
                 {"108", std::string(hearthBeat.data, hearthBeat.data+hearthBeat.size) },
                 {"141", "Y" },
@@ -75,17 +68,17 @@ namespace ctrader::data::message_data {
 
         };
 
-        template<> consteval message_t<MSG_TYPE::TEST_REQ> new_message_from_type(){
+        template<> consteval message_t<MSG::TEST_REQ> new_message_from_type(CONN conn){
             std::string testRegID = TestReqIDMinsize == 4 ? "TEST" : std::string(TestReqIDMinsize, 'T').c_str();
 
-            return new_message_from_fields<MSG_TYPE::TEST_REQ>({
+            return new_message_from_fields<MSG::TEST_REQ>(conn, {
                 {"112", testRegID}
             });   
         }
 
-        template<> consteval message_t<MSG_TYPE::MD_REQ_SUB_DEPTH> new_message_from_type(){
+        template<> consteval message_t<MSG::MD_REQ_SUB_DEPTH> new_message_from_type(CONN conn){
             
-            return new_message_from_fields<MSG_TYPE::MD_REQ_SUB_DEPTH>({
+            return new_message_from_fields<MSG::MD_REQ_SUB_DEPTH>(conn, {
                 {"262", std::string(FieldIDDigitSize, '0')},
                 {"263", "1"}, {"264", "0"}, {"265", "1"}, {"267", "2"}, {"269", "0"}, {"269", "1"}, 
                 {"146", "1"}, {"55", std::string(SymbolIDDigitSize, '0') }
@@ -96,10 +89,17 @@ namespace ctrader::data::message_data {
 
     } // internal 
 
-    
-    constinit auto LOGON = internal::new_message_from_type<MSG_TYPE::LOGON>();
-    constinit auto TEST_REQ = internal::new_message_from_type<MSG_TYPE::TEST_REQ>();
-    constinit auto MD_REQ_SUB_DEPTH = internal::new_message_from_type<MSG_TYPE::MD_REQ_SUB_DEPTH>();
+    namespace quote {
+        constinit auto LOGON = internal::new_message_from_type<MSG::LOGON>(CONN::QUOTE);
+        constinit auto TEST_REQ = internal::new_message_from_type<MSG::TEST_REQ>(CONN::QUOTE);
+        constinit auto MD_REQ_SUB_DEPTH = internal::new_message_from_type<MSG::MD_REQ_SUB_DEPTH>(CONN::QUOTE);
+    } // quote 
+
+    namespace trade {
+        constinit auto LOGON = internal::new_message_from_type<MSG::LOGON>(CONN::TRADE);
+        constinit auto TEST_REQ = internal::new_message_from_type<MSG::TEST_REQ>(CONN::TRADE);
+    } // trade 
+
  
 
     

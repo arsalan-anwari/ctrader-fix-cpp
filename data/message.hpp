@@ -5,9 +5,9 @@
 
 namespace ctrader::data::message {
 
-    using MSG_TYPE = ctrader::data::message_type::MSG_TYPE;
+    using MSG = ctrader::data::message_type::MSG;
 
-    template<MSG_TYPE T>
+    template<MSG T>
     struct message_t {
         union{
             char data[sizeof(ctrader::data::header::header_t) + sizeof(ctrader::data::message_type::internal::body_t<T>) + 8];

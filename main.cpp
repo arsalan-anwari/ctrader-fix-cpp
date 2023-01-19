@@ -5,7 +5,7 @@
 #include "data/message_data.hpp"
 // #include "data/field_id.hpp"
 #include "parser/encode.hpp"
-#include "parser/cache.hpp"
+#include "parser/encode_tools.hpp"
 
 
 void print_buff(const auto& buff){
@@ -32,42 +32,55 @@ int main(void){
 // Initialiaze data for tests
     using namespace ctrader::data;
     using namespace ctrader::parser::encode;
-    using namespace ctrader::parser::cache;
+    using namespace ctrader::parser::encode_tools;
+
+    ClockSync<CONN::QUOTE> quote_clock(500U);
+    // ClockSync<CONN::TRADE> trade_clock(500U);
+
+    Encoder<CONN::QUOTE> quote_encoder;
+    // Encoder<CONN::TRADE> trade_encoder;
 
     std::chrono::steady_clock::time_point start_loop, end_encode, end_loop;
-    auto clock = std::chrono::nanoseconds{ 546 };
-    auto init_dur = std::chrono::nanoseconds{ 100 };
-    
-    int vals_normal[100] = { 0 };
-    int vals_warmed[100] = { 0 };
-    
+    constexpr int loop_count = 10;
+    int vals_normal[loop_count] = { 0 };
+    int vals_warmed[loop_count] = { 0 };
+
+    printf("\n====== BEFORE ENCODE =====\n");
+    print_buff(message_data::quote::LOGON);
+    // print_buff(message_data::trade::LOGON);
+
+
+    // quote_encoder.encode_message<MSG::LOGON>();
+    // trade_encoder.encode_message<MSG::LOGON>();
+
 // Test Normal
-    for(int i=0; i<100; i++){
+    for(int i=0; i<loop_count; i++){
         start_loop = std::chrono::steady_clock::now();
         
         // encode message
-        prepare_message<MSG_TYPE::LOGON>(CONN_TYPE::QUOTE);
+        quote_encoder.encode_message<MSG::LOGON>();
         end_encode = std::chrono::steady_clock::now();
 
         // Store encode message time in array
         vals_normal[i] = std::chrono::duration_cast<std::chrono::nanoseconds> (end_encode - start_loop).count();
     }
 
-    internal::msg_seq_num = 1;
+    quote_encoder.reset_seq_num();
 
 // Test Warmed
-    // pre_fetch_cache at init
-    prepare_message<MSG_TYPE::LOGON>(CONN_TYPE::QUOTE);
-    prepare_message<MSG_TYPE::LOGON>(CONN_TYPE::QUOTE);
-    prepare_message<MSG_TYPE::LOGON>(CONN_TYPE::QUOTE);
-    
-    internal::msg_seq_num = 1;
 
-    for(int i=0; i<100; i++){
+    // pre_fetch_cache at init
+    quote_encoder.encode_message<MSG::LOGON>();
+    quote_encoder.encode_message<MSG::LOGON>();
+    quote_encoder.encode_message<MSG::LOGON>();
+    
+    quote_encoder.reset_seq_num();
+
+    for(int i=0; i<loop_count; i++){
         start_loop = std::chrono::steady_clock::now();
         
         // encode message
-        prepare_message<MSG_TYPE::LOGON>(CONN_TYPE::QUOTE);
+        quote_encoder.encode_message<MSG::LOGON>();
         end_encode = std::chrono::steady_clock::now();
 
         // Store encode message time in array
@@ -77,18 +90,20 @@ int main(void){
         end_loop = std::chrono::steady_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::nanoseconds> (end_loop - start_loop);
         
-        //clock_sync_and_warm_cache<MSG_TYPE::MD_REQ_SUB_DEPTH>( clock, dur, "000000", "1" );
-        clock_sync_and_warm_cache<MSG_TYPE::LOGON>( clock, dur, CONN_TYPE::QUOTE );
+        quote_clock.sync_and_warm_cache<MSG::LOGON>(dur);
     }
 
-    // Results
-    auto sum_normal = std::accumulate(vals_normal, vals_normal+100, 0);
-    auto sum_warmed = std::accumulate(vals_warmed, vals_warmed+100, 0);
-    
-    printf("sum_normal=%ins\n", (sum_normal/100) );
-    printf("sum_warmed=%ins\n", (sum_warmed/100) );
+    printf("\n====== AFTER ENCODE =====\n");
+    print_buff(message_data::quote::LOGON);
+    // print_buff(message_data::trade::LOGON);
 
-    print_buff(message_data::LOGON);
+// Results
+    printf("\n====== RESULTS =====\n");
+    auto sum_normal = std::accumulate(vals_normal, vals_normal+loop_count, 0);
+    auto sum_warmed = std::accumulate(vals_warmed, vals_warmed+loop_count, 0);
+    printf("\t- loop_count=%i\n", loop_count );
+    printf("\t- sum_normal=%ins\n", (sum_normal/loop_count) );
+    printf("\t- sum_warmed=%ins\n", (sum_warmed/loop_count) );
 
     return 0;
 }

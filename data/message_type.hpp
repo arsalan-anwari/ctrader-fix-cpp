@@ -7,10 +7,14 @@
 
 namespace ctrader::data::message_type {
 
-    enum class MSG_TYPE : uint8_t {
+    enum class MSG : uint8_t {
         TEST_REQ,
         LOGON, 
-        _MD_REQ, MD_REQ_SUB_DEPTH, MD_REQ_SUB_SPOT, MD_REQ_UNSUB_DEPTH, MD_REQ_UNSUB_SPOT, 
+        MD_REQ_SUB_DEPTH, MD_REQ_SUB_SPOT, MD_REQ_UNSUB_DEPTH, MD_REQ_UNSUB_SPOT, 
+    };
+
+    enum class CONN : uint8_t {
+        QUOTE, TRADE
     };
 
     using field_t = struct {
@@ -22,13 +26,15 @@ namespace ctrader::data::message_type {
         using namespace ctrader::settings;
         using namespace ctrader::data;
 
-        constexpr char MSG_TYPE_LOOKUP[] = {
+        constexpr char MSG_LOOKUP[] = {
             '1', 
             'A', 
-            'V', 'V', 'V', 'V', 'V'
+            'V', 'V', 'V', 'V'
         };
 
-        template<MSG_TYPE T> struct body_t{};
+        constexpr std::string_view CONN_LOOKUP[2] = { "QUOTE", "TRADE" };
+
+        template<MSG T> struct body_t{};
 
         consteval uint16_t calc_body_length_header_part(){
             return (
@@ -54,7 +60,7 @@ namespace ctrader::data::message_type::internal{
 using namespace ctrader::settings;
 using namespace ctrader::tools;
 
-template<> struct body_t<MSG_TYPE::LOGON> {
+template<> struct body_t<MSG::LOGON> {
     union{
         struct {
             char EncryptMethod[5];
@@ -67,7 +73,7 @@ template<> struct body_t<MSG_TYPE::LOGON> {
     };
 };
 
-template<> struct body_t<MSG_TYPE::TEST_REQ> {
+template<> struct body_t<MSG::TEST_REQ> {
     union{
         struct {
             char TestReqID[ TestReqIDMinsize + 5 ];
@@ -76,7 +82,7 @@ template<> struct body_t<MSG_TYPE::TEST_REQ> {
     };
 };
 
-template<> struct body_t<MSG_TYPE::_MD_REQ> {
+struct _MD_REQ {
     union{
         struct {
             char MDReqID[5 + FieldIDDigitSize];  // |262={0:FieldIDDigitSize}
@@ -93,10 +99,10 @@ template<> struct body_t<MSG_TYPE::_MD_REQ> {
     };
 };
 
-template<> struct body_t<MSG_TYPE::MD_REQ_SUB_DEPTH> : body_t<MSG_TYPE::_MD_REQ> {};
-template<> struct body_t<MSG_TYPE::MD_REQ_SUB_SPOT> : body_t<MSG_TYPE::_MD_REQ> {};
-template<> struct body_t<MSG_TYPE::MD_REQ_UNSUB_DEPTH> : body_t<MSG_TYPE::_MD_REQ> {};
-template<> struct body_t<MSG_TYPE::MD_REQ_UNSUB_SPOT> : body_t<MSG_TYPE::_MD_REQ> {};
+template<> struct body_t<MSG::MD_REQ_SUB_DEPTH> : _MD_REQ {};
+template<> struct body_t<MSG::MD_REQ_SUB_SPOT> : _MD_REQ {};
+template<> struct body_t<MSG::MD_REQ_UNSUB_DEPTH> : _MD_REQ {};
+template<> struct body_t<MSG::MD_REQ_UNSUB_SPOT> : _MD_REQ {};
 
 }
 
