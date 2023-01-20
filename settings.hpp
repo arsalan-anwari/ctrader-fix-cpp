@@ -3,6 +3,8 @@
 #include <string_view>
 #include <stdint.h>
 
+#include "data/field_id.hpp"
+
 namespace ctrader::settings {
 
     #define _ENABLE     1
@@ -12,8 +14,7 @@ namespace ctrader::settings {
 
     constexpr uint8_t           HearthBeatIntervalSec = 30;
     constexpr uint8_t           MsgSeqNumDigitSize = 19; // range {1 ... 19}
-    constexpr uint8_t           FieldIDDigitSize = 6;
-    constexpr uint8_t           SymbolIDDigitSize = 6;
+    constexpr uint8_t           KeySize = ctrader::data::field_id::KeySize;
     constexpr char              SOHChar = '|'; //mostly used for debugging output, set to '\1' on release
 
 

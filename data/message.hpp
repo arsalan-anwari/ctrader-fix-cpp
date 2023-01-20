@@ -1,19 +1,18 @@
 #pragma once
 
+#include "types/message_type.hpp"
+#include "body.hpp"
 #include "header.hpp"
-#include "message_type.hpp"
 
 namespace ctrader::data::message {
 
-    using MSG = ctrader::data::message_type::MSG;
-
-    template<MSG T>
+    template<ctrader::types::message_type::MSG T>
     struct message_t {
         union{
-            char data[sizeof(ctrader::data::header::header_t) + sizeof(ctrader::data::message_type::internal::body_t<T>) + 8];
+            char data[sizeof(ctrader::data::header::header_t) + sizeof(ctrader::data::body::internal::body_t<T>) + 8];
             struct {
                 ctrader::data::header::header_t header;
-                ctrader::data::message_type::internal::body_t<T> body;
+                ctrader::data::body::internal::body_t<T> body;
                 char checksum[8];
             };
         };

@@ -3,11 +3,13 @@
 #include <x86intrin.h>
 #include <algorithm>
 
+#include "types/memory_type.hpp"
 #include "concepts.hpp"
 
 namespace ctrader::tools::memory {
 
     using namespace ctrader::tools::concepts;
+    using namespace ctrader::types::memory_type;
 
     template<std::size_t SIZE> requires is_32byte_alignable<SIZE>
     static inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
@@ -43,20 +45,6 @@ namespace ctrader::tools::memory {
                 _mm256_load_si256( reinterpret_cast<__m256i const*>(src) )
             );
 
-    };
-
-    template <typename T, std::size_t N>
-    struct simple_buffer_t{
-        std::size_t size = N;
-        T data[N];
-    };
-
-    template <typename T, std::size_t CHUNK_SIZE, std::size_t CHUNK_NUM>
-    struct sparse_chunk_buffer_2d_t {
-        std::size_t chunksize = CHUNK_SIZE;
-        T data[CHUNK_SIZE*CHUNK_NUM];
-        constexpr T* operator[](std::size_t i){ return &data[chunksize*i];  };
-        const constexpr T* operator[](std::size_t i) const { return &data[ chunksize*i ]; }
     };
 
     template<typename T, std::size_t N>

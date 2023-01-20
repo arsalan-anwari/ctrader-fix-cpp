@@ -1,45 +1,16 @@
 #pragma once
 
-#include <string>
-#include <type_traits>
-
+#include "types/message_type.hpp"
 #include "tools/numbers.hpp"
 #include "header.hpp"
 
-namespace ctrader::data::message_type {
+namespace ctrader::data::body {
 
-    enum class MSG : uint8_t {
-        TEST_REQ,
-        LOGON, 
-        MD_REQ_SUB_DEPTH, MD_REQ_SUB_SPOT, MD_REQ_UNSUB_DEPTH, MD_REQ_UNSUB_SPOT, 
-    };
-
-    #define __COMPILE_TIME_CHECK_MSG_TYPE(MSG_VALUE, MSG_TYPE_COMPARE) \
-        std::is_same_v< \
-            std::conditional_t<(MSG_VALUE == MSG::MSG_TYPE_COMPARE), std::true_type, std::false_type>, \
-            std::true_type\
-        >\
-
-    enum class CONN : uint8_t {
-        QUOTE, TRADE
-    };
-
-    using field_t = struct {
-        std::string key;
-        std::string value;
-    };
 
     namespace internal{
         using namespace ctrader::settings;
-        using namespace ctrader::data;
-
-        constexpr char MSG_LOOKUP[] = {
-            '1', 
-            'A', 
-            'V', 'V', 'V', 'V'
-        };
-
-        constexpr std::string_view CONN_LOOKUP[2] = { "QUOTE", "TRADE" };
+        using namespace ctrader::data::header;
+        using namespace ctrader::types::message_type;
 
         template<MSG T> struct body_t{};
 
@@ -47,7 +18,7 @@ namespace ctrader::data::message_type {
             return (
                 4 + 5 + // 35=?|34=?
                 32 + // |52=timestamp|..
-                header::HeaderRemainderSize +
+                HeaderRemainderSize +
                 1 // |
             );
         };
@@ -62,10 +33,11 @@ namespace ctrader::data::message_type {
 
 
 
-namespace ctrader::data::message_type::internal{
+namespace ctrader::data::body::internal{
 
 using namespace ctrader::settings;
 using namespace ctrader::tools;
+using namespace ctrader::types::message_type;
 
 template<> struct body_t<MSG::LOGON> {
     union{
@@ -92,7 +64,7 @@ template<> struct body_t<MSG::TEST_REQ> {
 struct _MD_REQ {
     union{
         struct {
-            char MDReqID[5 + FieldIDDigitSize];  // |262={0:FieldIDDigitSize}
+            char MDReqID[5 + KeySize];  // |262={0:KeySize}
             char SubscriptionRequestType[5 + 1]; // |263=?
             char MarketDepth[5 + 1]; // |264=?
             char MarketDepthMDUpdateType[5 + 1]; // |265=1
@@ -100,7 +72,7 @@ struct _MD_REQ {
             char MDEntryTypeBid[5 + 1]; // |269=0
             char MDEntryTypeOffer[5 + 1]; // |269=1
             char NoRelatedSym[5 + 1]; // |146=1
-            char Symbol[4 + SymbolIDDigitSize]; // |55={0:SymbolIDDigitSize}
+            char Symbol[4 + 20]; // |55={0:20}
         } field;
         char raw[ sizeof(field) ];
     };
@@ -112,8 +84,3 @@ template<> struct body_t<MSG::MD_REQ_UNSUB_DEPTH> : _MD_REQ {};
 template<> struct body_t<MSG::MD_REQ_UNSUB_SPOT> : _MD_REQ {};
 
 }
-
-/*
-
-subscribe
-*/

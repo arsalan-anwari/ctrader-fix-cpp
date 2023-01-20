@@ -32,24 +32,24 @@ int main(void){
     using namespace ctrader::data;
     using namespace ctrader::parser::encode;
     using namespace ctrader::parser::encode_tools;
+    using namespace ctrader::types::message_type;
 
-// Sanity Check
-    // printf("\n====== BEFORE ENCODE =====\n");
-    // print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
+// // Sanity Check
+//     printf("\n====== BEFORE ENCODE =====\n");
+//     print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
 
-    // uint64_t symbol = 323;
-    // printf("\n====== AFTER ENCODE =====\n");
-    // Encoder<CONN::QUOTE> encoder;
-    // encoder.encode_message<MSG::MD_REQ_SUB_DEPTH>("ddsfsa", symbol);
-    // print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
+//     printf("\n====== AFTER ENCODE =====\n");
+//     Encoder<CONN::QUOTE> encoder;
+//     encoder.encode_message<MSG::MD_REQ_SUB_DEPTH>( { field_id::Keys[0], 242243 } );
+//     print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
+//     printf("field_id::Keys[0]=%s\n", field_id::Keys[0]);
 
 // Initialiaze data for tests
-    //auto symbol = static_cast<uint64_t>(723894UL);
 
     auto& MSG_DATA_TO_TEST = message_data::quote::MD_REQ_SUB_DEPTH;
     constexpr MSG MSG_TYPE_TO_TEST = MSG::MD_REQ_SUB_DEPTH;
     constexpr CONN CONN_TYPE_TO_TEST = CONN::QUOTE;
-    #define MSG_TYPE_PARAMS_TO_TEST(i) field_id::Keys[i], 242243
+    #define MSG_TYPE_PARAMS_TO_TEST(i) { field_id::Keys[i], 242243 }
     constexpr int MSG_LOOP_COUNT = 5;
 
     ClockSync<CONN_TYPE_TO_TEST> clock(500U);
