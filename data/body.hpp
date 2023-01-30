@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types/message_type.hpp"
+#include "types/message.hpp"
 #include "tools/numbers.hpp"
 #include "header.hpp"
 
@@ -10,7 +10,7 @@ namespace ctrader::data::body {
     namespace internal{
         using namespace ctrader::settings;
         using namespace ctrader::data::header;
-        using namespace ctrader::types::message_type;
+        using namespace ctrader::types::message;
 
         template<MSG T> struct body_t{};
 
@@ -28,7 +28,7 @@ namespace ctrader::data::body {
     constexpr uint16_t BodyLengthHeaderPart = internal::calc_body_length_header_part();
     constexpr uint8_t TestReqIDMinsize = (BodyLengthHeaderPart + 5) < 100 ? (100 - (BodyLengthHeaderPart + 5)) + 1 : 4; 
 
-} // ctrader::data::message_type
+} // ctrader::data::message
 
 
 
@@ -37,7 +37,7 @@ namespace ctrader::data::body::internal{
 
 using namespace ctrader::settings;
 using namespace ctrader::tools;
-using namespace ctrader::types::message_type;
+using namespace ctrader::types::message;
 
 template<> struct body_t<MSG::LOGON> {
     union{

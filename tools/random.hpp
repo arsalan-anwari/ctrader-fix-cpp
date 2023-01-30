@@ -35,7 +35,7 @@ namespace ctrader::tools::random{
     }
 
     // Based on XorShift128+ algorithm
-    static inline __attribute__((always_inline))
+     inline __attribute__((always_inline))
     uint64_t rand(){
         uint64_t x = internal::seeds[0];
         uint64_t const y = internal::seeds[1];
@@ -48,13 +48,13 @@ namespace ctrader::tools::random{
     // Modulo of base 2 is much faster than generic modulo of other numbers. 
     // No loop needed only sigle bit operation
     template<uint8_t N> requires is_power_of_2<N>
-    static inline __attribute__((always_inline))
+     inline __attribute__((always_inline))
     uint8_t rand_n(){
         return (rand() & (N - 1));
     };
 
 
-    static inline __attribute__((always_inline))
+     inline __attribute__((always_inline))
     char rand_anum(){
         return internal::anumLookup[rand_n<64>()];
     };

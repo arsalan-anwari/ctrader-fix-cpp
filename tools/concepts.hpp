@@ -13,6 +13,9 @@ namespace ctrader::tools::concepts {
     template<std::size_t SIZE, std::size_t MIN>
     concept is_minimum_size = SIZE >= MIN;
 
+    template<std::size_t SIZE, std::size_t MAX>
+    concept is_smaller_than = SIZE < MAX;
+
     template<std::size_t VAL>
     concept is_power_of_2 = (VAL > 0) && !(VAL & (VAL - 1));
 

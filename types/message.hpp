@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <stdint.h>
 
-namespace ctrader::types::message_type {
+namespace ctrader::types::message {
 
     enum class MSG : uint8_t {
         TEST_REQ,
@@ -30,4 +30,4 @@ namespace ctrader::types::message_type {
 
     constexpr std::string_view CONN_LOOKUP[2] = { "QUOTE", "TRADE" };
 
-} // ctrader::types::message_type
+} // ctrader::types::message

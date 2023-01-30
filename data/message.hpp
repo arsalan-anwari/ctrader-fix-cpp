@@ -1,12 +1,12 @@
 #pragma once
 
-#include "types/message_type.hpp"
+#include "types/message.hpp"
 #include "body.hpp"
 #include "header.hpp"
 
 namespace ctrader::data::message {
 
-    template<ctrader::types::message_type::MSG T>
+    template<ctrader::types::message::MSG T>
     struct message_t {
         union{
             char data[sizeof(ctrader::data::header::header_t) + sizeof(ctrader::data::body::internal::body_t<T>) + 8];

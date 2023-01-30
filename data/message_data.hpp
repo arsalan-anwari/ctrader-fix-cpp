@@ -12,7 +12,7 @@ namespace ctrader::data::message_data {
     namespace internal{
         using namespace ctrader::data::message;
         using namespace ctrader::data::body;
-        using namespace ctrader::types::message_type;
+        using namespace ctrader::types::message;
         using namespace ctrader::tools;
         using namespace ctrader::settings;
 
@@ -95,7 +95,7 @@ namespace ctrader::data::message_data {
     } // internal 
 
     namespace quote {
-        using namespace ctrader::types::message_type;
+        using namespace ctrader::types::message;
 
         constinit auto LOGON = internal::new_message_from_type<MSG::LOGON>(CONN::QUOTE);
         constinit auto TEST_REQ = internal::new_message_from_type<MSG::TEST_REQ>(CONN::QUOTE);
@@ -103,7 +103,7 @@ namespace ctrader::data::message_data {
     } // quote 
 
     namespace trade {
-        using namespace ctrader::types::message_type;
+        using namespace ctrader::types::message;
 
         constinit auto LOGON = internal::new_message_from_type<MSG::LOGON>(CONN::TRADE);
         constinit auto TEST_REQ = internal::new_message_from_type<MSG::TEST_REQ>(CONN::TRADE);

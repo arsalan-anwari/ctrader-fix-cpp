@@ -3,16 +3,16 @@
 #include <x86intrin.h>
 #include <algorithm>
 
-#include "types/memory_type.hpp"
+#include "types/memory.hpp"
 #include "concepts.hpp"
 
 namespace ctrader::tools::memory {
 
     using namespace ctrader::tools::concepts;
-    using namespace ctrader::types::memory_type;
+    using namespace ctrader::types::memory;
 
     template<std::size_t SIZE> requires is_32byte_alignable<SIZE>
-    static inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void memcpy_32a(char* dst, const char* src){
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
             _mm256_store_si256(
@@ -23,7 +23,7 @@ namespace ctrader::tools::memory {
     };
 
     template<std::size_t SIZE, uint8_t REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
-    static inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void memcpy_32u(char* dst, const char* src){
 
         for(uint8_t i=0; i < REM; i++){ dst[i] = src[i]; }
@@ -37,7 +37,7 @@ namespace ctrader::tools::memory {
         
     };
 
-    static inline __attribute__((always_inline))
+     inline __attribute__((always_inline))
     void memcpy_32(char* dst, const char* src){
         
             _mm256_store_si256(

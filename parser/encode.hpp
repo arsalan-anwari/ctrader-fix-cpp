@@ -4,26 +4,27 @@
 #include <utility>
 
 #include "data/message_data.hpp"
-#include "types/encode_type.hpp"
 
 #include "tools/numbers.hpp"
 #include "tools/datetime.hpp"
 #include "tools/memory.hpp"
 
 #include "checksum.hpp"
+#include "global.hpp"
 #include "settings.hpp"
 
 namespace ctrader::parser::encode {
 
-using namespace ctrader::types::encode_type;
+using namespace ctrader::types::symbol;
+using namespace ctrader::types::message;
+using namespace ctrader::parser::global;
+using namespace ctrader::tools;
 
 namespace internal {
-    using namespace ctrader::tools;
     using namespace ctrader::data;
     using namespace ctrader::settings;
-    using namespace ctrader::types::message_type;
 
-    static uint64_t msg_seq_num = 1;
+    constexpr std::string dummyFieldID = std::string(KeySize, '0');
 
     #define __PREPARE_HEADER(MSG_DATA) \
     numbers::to_string( message_data::MSG_DATA.header.field.MsgSeqNum+4, message_data::MSG_DATA.header.field.MsgSeqNum+MsgSeqNumDigitSize+4, msg_seq_num ); \
@@ -41,26 +42,35 @@ namespace internal {
     std::memset(message_data::MSG_DATA.checksum+4, '0', 3); \
     numbers::to_string( message_data::MSG_DATA.checksum+4, message_data::MSG_DATA.checksum+4+3, cs); \
 
-    template<MSG M, CONN C> 
-    static inline __attribute__((always_inline))
-    void prepare_message(const options_t<M>& opt){
+    template<MSG M, CONN C, typename... FIELD_TYPE> 
+     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+    void prepare_message(FIELD_TYPE... fields){
         static_assert( 
             (M == MSG::MD_REQ_SUB_DEPTH) && (C != CONN::TRADE),
             "Message type: MD_REQ_SUB_DEPTH Cannot be used with Connection type: TRADE!"  
         );
     }
 
-    template<> void prepare_message<MSG::LOGON, CONN::QUOTE>(const options_t<MSG::LOGON>& opt){ __PREPARE_DEFAULT(quote::LOGON); };
-    template<> void prepare_message<MSG::LOGON, CONN::TRADE>(const options_t<MSG::LOGON>& opt){ __PREPARE_DEFAULT(trade::LOGON); };
+    template<> void prepare_message<MSG::LOGON, CONN::QUOTE>(){ __PREPARE_DEFAULT(quote::LOGON); };
+    template<> void prepare_message<MSG::LOGON, CONN::TRADE>(){ __PREPARE_DEFAULT(trade::LOGON); };
 
-    template<> void prepare_message<MSG::TEST_REQ, CONN::QUOTE>(const options_t<MSG::TEST_REQ>& opt){ __PREPARE_DEFAULT(quote::TEST_REQ); };
-    template<> void prepare_message<MSG::TEST_REQ, CONN::TRADE>(const options_t<MSG::TEST_REQ>& opt){ __PREPARE_DEFAULT(trade::TEST_REQ); };
+    template<> void prepare_message<MSG::TEST_REQ, CONN::QUOTE>(){ __PREPARE_DEFAULT(quote::TEST_REQ); };
+    template<> void prepare_message<MSG::TEST_REQ, CONN::TRADE>(){ __PREPARE_DEFAULT(trade::TEST_REQ); };
 
-    template<> void prepare_message<MSG::MD_REQ_SUB_DEPTH, CONN::QUOTE>(const options_t<MSG::MD_REQ_SUB_DEPTH>& opt){ 
+    template<> void prepare_message<MSG::MD_REQ_SUB_DEPTH, CONN::QUOTE>(const SYMBOL symbol, const char* mdReqId ){ 
         __PREPARE_HEADER(quote::MD_REQ_SUB_DEPTH);
-        std::memcpy(message_data::quote::MD_REQ_SUB_DEPTH.body.field.MDReqID+5, opt.mdReqId, KeySize);
+        
+        std::memcpy(message_data::quote::MD_REQ_SUB_DEPTH.body.field.MDReqID+5, mdReqId, KeySize);
+        
         std::memset(message_data::quote::MD_REQ_SUB_DEPTH.body.field.Symbol+4, '0', 20);
-        numbers::to_string(message_data::quote::MD_REQ_SUB_DEPTH.body.field.Symbol+4, message_data::quote::MD_REQ_SUB_DEPTH.body.field.Symbol+4+20, opt.symbol);
+
+        std::memcpy(
+            message_data::quote::MD_REQ_SUB_DEPTH.body.field.Symbol+4+(20-SymbolData::get_size(symbol)), 
+            SymbolData::get_data(symbol), 
+            SymbolData::get_size(symbol)
+        );
+
+        //numbers::to_string(message_data::quote::MD_REQ_SUB_DEPTH.body.field.Symbol+4, message_data::quote::MD_REQ_SUB_DEPTH.body.field.Symbol+4+20, 1 );
         __PREPARE_FOOTER(quote::MD_REQ_SUB_DEPTH);
     };
 
@@ -70,18 +80,22 @@ template<CONN C>
 struct Encoder {
     Encoder(){};
 
-    template<MSG M> 
-    static inline __attribute__((always_inline))
-    void encode_message(const options_t<M>&& opt) { internal::prepare_message<M, C>( std::move(opt) ); internal::msg_seq_num++; };
+    template<MSG M, typename... FIELD_TYPE> 
+     inline __attribute__((always_inline))
+    void encode_message(FIELD_TYPE... fields) { 
+        internal::prepare_message<M, C>( fields... ); 
+        msg_seq_num++;
+        numbers::overflow_correction(
+            msg_seq_num, 
+            msg_seq_num_base, 
+            msg_seq_num_digit_size
+        );
 
-    template<MSG M> 
-    static inline __attribute__((always_inline))
-    void encode_message(options_t<M>& opt) { internal::prepare_message<M, C>( opt ); internal::msg_seq_num++; };
+    };
 
 
-
-    static inline __attribute__((always_inline))
-    void reset_seq_num() { internal::msg_seq_num = 1; };
+     inline __attribute__((always_inline))
+    void reset_seq_num() { global::parser::msg_seq_num = 1; };
 };
 
 }

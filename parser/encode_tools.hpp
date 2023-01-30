@@ -2,14 +2,12 @@
 
 #include <chrono>
 
-#include "types/encode_type.hpp"
 #include "encode.hpp"
 #include "concepts"
 
 namespace ctrader::parser::encode_tools {
 
-using namespace ctrader::types::message_type;
-using namespace ctrader::types::encode_type;
+using namespace ctrader::types::message;
 using namespace ctrader::tools::concepts;
 
 template<CONN C, typename TIME_PERIOD = std::chrono::nanoseconds> 
@@ -27,7 +25,7 @@ struct ClockSync {
         auto now = std::chrono::steady_clock::now;
         auto duration = clock - elapsed;
         auto stop_time = now() + duration;
-        while( now() < stop_time ){ internal::prepare_message<M, C>( {} ); };
+        while( now() < stop_time ){ internal::prepare_message<M, C>(); };
     };
 
     const TIME_PERIOD clock;

@@ -9,11 +9,11 @@ namespace ctrader::tools::datetime {
 
     namespace internal{
 
-        static const char* zero_buff = "|52=00000000-00:00:00.000000|49=";
+         const char* zero_buff = "|52=00000000-00:00:00.000000|49=";
 
     }
 
-    static inline __attribute__((always_inline))
+     inline __attribute__((always_inline))
     void current_timestamp_from_offset( char* out ){
         using namespace std::chrono;
         using namespace ctrader::tools;
