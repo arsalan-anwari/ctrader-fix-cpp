@@ -177,12 +177,29 @@ int main(){
 
     // printf("%u\n", absolute_offset_lookup[absolute_offset_lookup_idx] );
 
-    Decoder<DECODE_TYPE::MARKET_DATA_INCREMENTAL> decoder;
+    Decoder decoder;
+    uint8_t result = decoder.decode<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(data);
+    printf("num_entries= %u\n", result);
+
+    for(int i=0; i<25; i++){
+        printf(
+            "[%i, %i] ", 
+            decoder.market_incremental_indices[0][i].begin,
+            decoder.market_incremental_indices[0][i].end 
+        );
+    }
+
+    printf("\n\n");
+
+    for(int i=0; i<25; i++){
+        printf(
+            "[%i, %i] ", 
+            decoder.market_incremental_indices[2][i].begin,
+            decoder.market_incremental_indices[2][i].end 
+        );
+    }
 
 
-
-    // //printf("%u", decoder.decode(data));
-    // printf("%s", DECODE_TYPE_PATTERN_LOOKUP[1] );
 
     return 0;
 }

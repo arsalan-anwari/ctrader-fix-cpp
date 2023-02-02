@@ -10,6 +10,10 @@ namespace ctrader::types::symbol {
         EUR_USD= 1UL
     };
 
+    SYMBOL SYMBOL_LOOKUP[] = {
+
+    };
+
     namespace internal {
 
         constexpr std::string_view symbol_data[] = {

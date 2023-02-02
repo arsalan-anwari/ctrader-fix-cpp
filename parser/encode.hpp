@@ -17,7 +17,7 @@ namespace ctrader::parser::encode {
 
 using namespace ctrader::types::symbol;
 using namespace ctrader::types::message;
-using namespace ctrader::parser::global;
+using namespace ctrader::parser;
 using namespace ctrader::tools;
 
 namespace internal {
@@ -27,7 +27,7 @@ namespace internal {
     constexpr std::string dummyFieldID = std::string(KeySize, '0');
 
     #define __PREPARE_HEADER(MSG_DATA) \
-    numbers::to_string( message_data::MSG_DATA.header.field.MsgSeqNum+4, message_data::MSG_DATA.header.field.MsgSeqNum+MsgSeqNumDigitSize+4, msg_seq_num ); \
+    numbers::to_string( message_data::MSG_DATA.header.field.MsgSeqNum+4, message_data::MSG_DATA.header.field.MsgSeqNum+MsgSeqNumDigitSize+4, global::MsgSeqNum::msg_seq_num ); \
     datetime::current_timestamp_from_offset( message_data::MSG_DATA.header.field.timestamp_32a ); \
 
     #define __PREPARE_FOOTER(MSG_DATA) \
@@ -36,7 +36,7 @@ namespace internal {
     numbers::to_string( message_data::MSG_DATA.checksum+4, message_data::MSG_DATA.checksum+4+3, cs); \
 
     #define __PREPARE_DEFAULT(MSG_DATA) \
-    numbers::to_string( message_data::MSG_DATA.header.field.MsgSeqNum+4, message_data::MSG_DATA.header.field.MsgSeqNum+MsgSeqNumDigitSize+4, msg_seq_num ); \
+    numbers::to_string( message_data::MSG_DATA.header.field.MsgSeqNum+4, message_data::MSG_DATA.header.field.MsgSeqNum+MsgSeqNumDigitSize+4, global::MsgSeqNum::msg_seq_num ); \
     datetime::current_timestamp_from_offset( message_data::MSG_DATA.header.field.timestamp_32a ); \
     const uint8_t cs = calc_checksum<sizeof(message_data::MSG_DATA.data)-7>(message_data::MSG_DATA.data); \
     std::memset(message_data::MSG_DATA.checksum+4, '0', 3); \
@@ -81,21 +81,24 @@ struct Encoder {
     Encoder(){};
 
     template<MSG M, typename... FIELD_TYPE> 
-     inline __attribute__((always_inline))
+    inline __attribute__((always_inline))
     void encode_message(FIELD_TYPE... fields) { 
         internal::prepare_message<M, C>( fields... ); 
-        msg_seq_num++;
+        global::MsgSeqNum::msg_seq_num++;
         numbers::overflow_correction(
-            msg_seq_num, 
-            msg_seq_num_base, 
-            msg_seq_num_digit_size
+            global::MsgSeqNum::msg_seq_num,
+            global::MsgSeqNum::msg_seq_num_base,
+            global::MsgSeqNum::msg_seq_num_digit_size
         );
-
     };
 
 
-     inline __attribute__((always_inline))
-    void reset_seq_num() { global::parser::msg_seq_num = 1; };
+    inline __attribute__((always_inline))
+    void reset_seq_num() { global::MsgSeqNum::msg_seq_num = 1; };
+
+    inline __attribute__((always_inline))
+    uint64_t get_seq_num() { return global::MsgSeqNum::msg_seq_num; };
+
 };
 
 }
