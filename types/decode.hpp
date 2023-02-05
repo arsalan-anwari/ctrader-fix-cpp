@@ -4,12 +4,15 @@
 #include <string_view>
 
 #include "types/memory.hpp"
+#include "types/symbol.hpp"
+
 #include "settings.hpp"
 
 namespace ctrader::types::decode {
 
     using namespace ctrader::settings;
     using namespace ctrader::types::memory;
+    using namespace ctrader::types::symbol;
 
     enum class UPDATE_ACTION : uint8_t { NEW, UNKNOWN, DELETE };
     UPDATE_ACTION UPDATE_ACTION_LOOKUP[3] = { UPDATE_ACTION::NEW, UPDATE_ACTION::UNKNOWN, UPDATE_ACTION::DELETE };
@@ -28,7 +31,7 @@ namespace ctrader::types::decode {
     };
 
     struct decode_metadata { uint16_t offset = 0; uint16_t size = 0; };
-    struct market_index_range { int16_t begin = -1; int16_t end = -1; };
+    struct index_range { int16_t begin = -1; int16_t end = -1; };
 
     template <DATA_TYPE T> struct decode_data {};
 
@@ -36,8 +39,8 @@ namespace ctrader::types::decode {
     struct decode_data<DATA_TYPE::MARKET_DATA> {
         UPDATE_ACTION UpdateAction = UPDATE_ACTION::UNKNOWN;
         ENTRY_TYPE EntryType = ENTRY_TYPE::UNKNOWN;
+        SYMBOL Symbol = SYMBOL::UNKNOWN;
         int64_t EntryId = -1;
-        int64_t SymbolId = -1;
         float EntryPrice = -1.0;
         int64_t EntrySize = -1;
     };
@@ -46,9 +49,9 @@ namespace ctrader::types::decode {
     template<DATA_TYPE T>
     using message_container = simple_buffer_t<decode_data<T>, 256>;
 
-    using market_index_container = sparse_chunk_buffer_2d_t<market_index_range, 256, 4>;
+    using market_index_container = sparse_chunk_buffer_2d_t<index_range, 256, 4>;
 
-    using market_index_filter = simple_buffer_t<uint8_t, 256>
+    using market_index_filter = simple_buffer_t<uint8_t, 256>;
 
 
 

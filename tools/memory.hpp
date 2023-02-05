@@ -12,7 +12,7 @@ namespace ctrader::tools::memory {
     using namespace ctrader::types::memory;
 
     template<std::size_t SIZE> requires is_32byte_alignable<SIZE>
-     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void memcpy_32a(char* dst, const char* src){
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
             _mm256_store_si256(
@@ -37,7 +37,7 @@ namespace ctrader::tools::memory {
         
     };
 
-     inline __attribute__((always_inline))
+    inline __attribute__((always_inline))
     void memcpy_32(char* dst, const char* src){
         
             _mm256_store_si256(

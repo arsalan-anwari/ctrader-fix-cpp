@@ -2,6 +2,7 @@
 
 #include <cmath> // std::log10, std::floor, std::abs
 #include <stdint.h>
+#include <cstring> // std::memcpy
 
 #include "types/numbers.hpp"
 
@@ -20,9 +21,9 @@ namespace ctrader::tools::numbers {
     }
 
     inline __attribute__((always_inline)) 
-    void overflow_correction(int64_t& val, int64_t& base, uint16_t& digit_size){
+    void overflow_correction(int64_t& val, int64_t& base, uint8_t& digit_size){
         const int64_t new_base[3] = { (base * 10), (base * 10), base }; 
-        const uint16_t new_digit_size[3] = { (digit_size + 1U), (digit_size + 1U), digit_size };
+        const uint8_t new_digit_size[3] = { (digit_size + 1U), (digit_size + 1U), digit_size };
         int64_t res = base - val;
         int64_t state = ( (res > 0) - (res < 0) ) + 1;
         base = new_base[ state ];
@@ -41,27 +42,20 @@ namespace ctrader::tools::numbers {
     template<typename T, T SIZE> 
     requires std::integral<T> && is_minimum_size<SIZE, 1>
     inline __attribute__((always_inline))
-    T to_num(const char* buff) {
-        // return static_cast<uint16_t>( 
-        //     ((buff[0] - '0') * 1000) +
-        //     ((buff[1] - '0') * 100) +
-        //     ((buff[2] - '0') * 10) +
-        //     ((buff[3] - '0'))
-        // );
-    }
+    T to_num(const char* buff) {}
 
-    template<> uint8_t to_num<1>(const char* buff){
+    template<> uint8_t to_num<uint8_t, 1>(const char* buff){
         return (buff[0] - '0');
     }
 
-    template<> uint8_t to_num<2>(const char* buff){
+    template<> uint8_t to_num<uint8_t, 2>(const char* buff){
         return static_cast<uint8_t>( 
             ((buff[0] - '0') * 10) +
             ((buff[1] - '0'))
         );
     }
 
-    template<> uint16_t to_num<3>(const char* buff){
+    template<> uint16_t to_num<uint16_t, 3>(const char* buff){
         return static_cast<uint16_t>( 
             ((buff[0] - '0') * 100) +
             ((buff[1] - '0') * 10) +
@@ -69,7 +63,7 @@ namespace ctrader::tools::numbers {
         );
     }
 
-    template<> int64_t to_num<10>(const char* buff){
+    template<> int64_t to_num<int64_t, 10>(const char* buff){
         return static_cast<int64_t>( 
             ((buff[0] - '0') * 1'000'000'000) +
             ((buff[1] - '0') * 100'000'000) +
@@ -105,6 +99,20 @@ namespace ctrader::tools::numbers {
         }
 
         return {total_msg_size, msg_digit_size};
+    }
+
+    template<> number_info_t<uint16_t> to_num_estimate<uint16_t, 4>(const char* buff) {
+        auto last_val = (buff[3] - '0');
+        bool last_correct = (last_val > 0) && (last_val < 10);
+
+        uint16_t total_msg_size = static_cast<uint16_t>( 
+            ((buff[0] - '0') * 1000) * +
+            ((buff[1] - '0') * 100) +
+            ((buff[2] - '0') * 10) +
+            (last_val * last_correct) 
+        );
+
+        return {total_msg_size, 3+last_correct};
     }
 
 

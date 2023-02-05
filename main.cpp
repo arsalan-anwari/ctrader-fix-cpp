@@ -32,33 +32,48 @@
 //     using namespace ctrader::data;
 //     using namespace ctrader::parser::encode;
 //     using namespace ctrader::parser::encode_tools;
-//     using namespace ctrader::types::message;
+//     using namespace ctrader::types::encode;
+//     using namespace ctrader::types::symbol;
 
 // // // Sanity Check
+// //     Encoder<CONN_TYPE::QUOTE> encoder;
+
 // //     printf("\n====== BEFORE ENCODE =====\n");
 // //     print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
+// //     printf(
+// //         "\n\tmsg_seq_num=%i\n\tmsg_seq_num_base=%i\n\tmsg_seq_num_digit_size=%u\n", 
+// //         encoder.get_seq_num(), encoder.get_seq_num_base(), encoder.get_seq_num_digit_size()
+// //     );
 
 // //     printf("\n====== AFTER ENCODE =====\n");
-// //     Encoder<CONN::QUOTE> encoder;
-// //     encoder.encode_message<MSG::MD_REQ_SUB_DEPTH>( { field_id::Keys[0], 242243 } );
+
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[1] );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[1]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[2]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[3]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[4]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[5]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[6]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[7]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[8]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[9]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[10]  );
+// //     encoder.encode_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH>( SYMBOL::EUR_USD, field_id::Keys[11]  );
+    
 // //     print_buff(message_data::quote::MD_REQ_SUB_DEPTH);
-// //     printf("field_id::Keys[0]=%s\n", field_id::Keys[0]);
+// //     printf(
+// //         "\n\tmsg_seq_num=%i\n\tmsg_seq_num_base=%i\n\tmsg_seq_num_digit_size=%u\n", 
+// //         encoder.get_seq_num(), encoder.get_seq_num_base(), encoder.get_seq_num_digit_size()
+// //     );
 
 // // Initialiaze data for tests
 
-//     // // Setting 1
+//     // Settings
 //     auto& MSG_DATA_TO_TEST = message_data::quote::MD_REQ_SUB_DEPTH;
-//     constexpr MSG MSG_TYPE_TO_TEST = MSG::MD_REQ_SUB_DEPTH;
-//     constexpr CONN CONN_TYPE_TO_TEST = CONN::QUOTE;
+//     constexpr ENCODE_TYPE MSG_TYPE_TO_TEST = ENCODE_TYPE::MD_REQ_SUB_DEPTH;
+//     constexpr CONN_TYPE CONN_TYPE_TO_TEST = CONN_TYPE::QUOTE;
 //     #define MSG_TYPE_PARAMS_TO_TEST(i) SYMBOL::EUR_USD, field_id::Keys[i]
 //     constexpr int MSG_LOOP_COUNT = 5;
-
-//     // Setting 2
-//     // auto& MSG_DATA_TO_TEST = message_data::quote::LOGON;
-//     // constexpr MSG MSG_TYPE_TO_TEST = MSG::LOGON;
-//     // constexpr CONN CONN_TYPE_TO_TEST = CONN::QUOTE;
-//     // constexpr int MSG_LOOP_COUNT = 5;
-//     // #define MSG_TYPE_PARAMS_TO_TEST(LOOP_ITERATION) { }
 
 //     ClockSync<CONN_TYPE_TO_TEST> clock(500U);
 //     Encoder<CONN_TYPE_TO_TEST> encoder;
@@ -178,7 +193,7 @@ int main(){
     // printf("%u\n", absolute_offset_lookup[absolute_offset_lookup_idx] );
 
     Decoder decoder;
-    uint8_t result = decoder.decode<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(data);
+    uint8_t result = decoder.decode<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(data, 1, SYMBOL::EUR_USD);
     printf("num_entries= %u\n", result);
 
     for(int i=0; i<25; i++){

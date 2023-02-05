@@ -10,19 +10,19 @@
 
 #include "tools/numbers.hpp"
 
-#include "global.hpp"
 #include "settings.hpp"
 
 namespace ctrader::parser::decode {
 
 using namespace ctrader::types::decode;
+using namespace ctrader::types::symbol;
 using namespace ctrader::tools;
+
 
 namespace internal {
 
     using namespace ctrader::data;
     using namespace ctrader::settings;
-    using namespace ctrader::parser;
 
     #define __DECODE_GEN_PATTERN(pattern) __SETTINGS_SOH #pattern
 
@@ -46,13 +46,13 @@ namespace internal {
     
 
     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    decode_metadata get_message_meta(const char* data){
+    decode_metadata get_message_meta(const char* data, const uint8_t msg_seq_num_digit_size){
 
         auto msg_size_info = numbers::to_num_estimate<uint16_t, 4>(data+12);
 
         const uint16_t header_size = ( 
             9 + // |35=X|34=
-            global::MsgSeqNum::msg_seq_num_digit_size + // {0:1-18}
+            msg_seq_num_digit_size + // {0:1-18}
             49 + // |49=cServer|50=QUOTE|52=20230124-13:30:46.130|56=
             broker_settings::SenderCompID.size() // demo.icmarkets.8536054
         );
@@ -75,29 +75,28 @@ namespace internal {
 namespace algorithms {
 
     namespace market_orders{
-        using namespace ctrader::types::symbol;
 
         inline __attribute__((always_inline))
-        void create_insert_order_inc(const char* data, decode_data<DATA_TYPE::MARKET_DATA>& entry, uint16_t start, uint16_t end){
+        void create_insert_order_inc(const char* data, decode_data<DATA_TYPE::MARKET_DATA>& entry, const SYMBOL symbol, uint16_t start, uint16_t end){
             entry.UpdateAction = UPDATE_ACTION::NEW;
             entry.EntryType = ENTRY_TYPE_LOOKUP[ static_cast<uint8_t>( data[start+11] ) ];
             entry.EntryId = numbers::to_num<int64_t, 10>(data+start+17);
-            entry.SymbolId = SYMBOL_LOOKUP[ static_cast<uint8_t>( data[start+31]) ];
+            entry.Symbol = symbol;
         }
     }
 
     template<DECODE_TYPE T, typename... CONTAINER_TYPE>
     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    void parsing_algorithm( const char* data, uint16_t size, CONTAINER_TYPE&& ... containers  ){};
+    void parsing_algorithm( const char* data, uint16_t size, const uint16_t num_entries, const SYMBOL symbol, CONTAINER_TYPE&& ... containers  ){};
 
     template<> void parsing_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>
-    (   const char* data, uint16_t size, uint16_t& num_entries,
+    (   const char* data, uint16_t size, const uint16_t num_entries, const SYMBOL symbol,
         message_container<DATA_TYPE::MARKET_DATA>& market_data,
         market_index_container& market_indices,
         market_index_filter& market_insert_index_filter,
         market_index_filter& market_remove_index_filter
     ){
-        //printf("ik word aangeroepen!");
+    
         const uint8_t base_skip_size_lookup[4] = {50, 4, 26, 4};
 
         // Precalculate first entry (always starts at i=0)
@@ -152,7 +151,7 @@ namespace algorithms {
         market_indices[ new_message_type ][ new_mi_idx ].end = size;
 
         // Filter out found index ranges and stores in temporary array
-        uint8_t market_insert_count, market_remove_count, market_insert_idx, market_remove_idx = 0;
+        uint8_t market_insert_count = 0, market_remove_count = 0, market_insert_idx = 0, market_remove_idx = 0;
 
         for (uint8_t i = 0; i < num_entries + 1; i++){
             auto begin_insert = market_indices[0][i].begin;
@@ -172,17 +171,17 @@ namespace algorithms {
             market_remove_index_filter.data[ market_remove_idx * result_state_remove ] = i;
         }
 
-        uint8_t market_data_idx = 0;
-        for (uint8_t i=1; i < market_insert_count+1; i++){
-            auto filter_idx = market_insert_index_filter.data[i];
+        // uint8_t market_data_idx = 0;
+        // for (uint8_t i=1; i < market_insert_count+1; i++){
+        //     auto filter_idx = market_insert_index_filter.data[i];
             
-            decode_data<DATA_TYPE::MARKET_DATA>& entry = market_data[market_data_idx++];
-            market_orders::create_insert_order_inc(
-                data, entry, 
-                market_indices[0][filter_idx].begin, 
-                market_indices[0][filter_idx].end
-            );
-        }
+        //     decode_data<DATA_TYPE::MARKET_DATA>& entry = market_data[market_data_idx++];
+        //     market_orders::create_insert_order_inc(
+        //         data, entry, 
+        //         market_indices[0][filter_idx].begin, 
+        //         market_indices[0][filter_idx].end
+        //     );
+        // }
 
     };
 
@@ -194,13 +193,13 @@ struct Decoder{
 
     template<DECODE_TYPE T>
     inline __attribute__((always_inline))
-    uint8_t decode(const char* data){ 
+    uint8_t decode(const char* data, const uint8_t msg_seq_num_digit_size, const SYMBOL symbol){ 
         if constexpr (T == DECODE_TYPE::MARKET_DATA_INCREMENTAL){
-            decode_metadata meta = internal::get_message_meta(data);
+            decode_metadata meta = internal::get_message_meta(data, msg_seq_num_digit_size);
             auto entries = numbers::to_num_estimate<uint16_t, 3>(data+meta.offset+5);
 
             algorithms::parsing_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
-                data+meta.offset+5+entries.digit_count, meta.size-(5+entries.digit_count),entries.value, 
+                data+meta.offset+5+entries.digit_count, meta.size-(5+entries.digit_count), entries.value, symbol, 
                 market_data, market_incremental_indices, market_incremental_insert_index_filter, market_incremental_remove_index_filter
             ); 
 

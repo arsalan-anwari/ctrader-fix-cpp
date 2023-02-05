@@ -12,7 +12,7 @@ namespace ctrader::data::message_data {
     namespace internal{
         using namespace ctrader::data::message;
         using namespace ctrader::data::body;
-        using namespace ctrader::types::message;
+        using namespace ctrader::types::encode;
         using namespace ctrader::tools;
         using namespace ctrader::settings;
 
@@ -21,10 +21,10 @@ namespace ctrader::data::message_data {
             std::string value;
         };
         
-        template<MSG T>
-        consteval message_t<T> new_message_from_fields( CONN conn, std::initializer_list<field_t> fields ){
+        template<ENCODE_TYPE T>
+        consteval message_t<T> new_message_from_fields( CONN_TYPE conn, std::initializer_list<field_t> fields ){
             message_t<T> buff;
-            const char msgType = MSG_LOOKUP[static_cast<uint8_t>(T)];
+            const char msgType = ENCODE_CHAR[static_cast<uint8_t>(T)];
             const uint16_t bodylen = ( BodyLengthHeaderPart + sizeof(buff.body.raw));
     
             static_assert(bodylen >= 100, "Cannot generate message_data as some messages have a 'BodyLength' field value (9=...) lower than 100!");
@@ -42,7 +42,7 @@ namespace ctrader::data::message_data {
                 field_t{"52", std::string(24, '0') },
                 field_t{"49", std::string(broker_settings::SenderCompID.data()) },
                 field_t{"56", std::string("cServer") },
-                field_t{"57", std::string( CONN_LOOKUP[ static_cast<uint8_t>(conn) ].data() ) }
+                field_t{"57", std::string( CONN_STRING[ static_cast<uint8_t>(conn) ].data() ) }
             };
             
             for(uint8_t i=0; i<7; i++){ data += ( HeaderFields[i].key + "=" + HeaderFields[i].value + SOHChar ); }
@@ -56,14 +56,14 @@ namespace ctrader::data::message_data {
             return buff;
         };
 
-        template<MSG T>
-        consteval message_t<T> new_message_from_type(CONN conn);
+        template<ENCODE_TYPE T>
+        consteval message_t<T> new_message_from_type(CONN_TYPE conn);
 
-        template<> consteval message_t<MSG::LOGON> new_message_from_type(CONN conn){
+        template<> consteval message_t<ENCODE_TYPE::LOGON> new_message_from_type(CONN_TYPE conn){
 
             auto hearthBeat = numbers::to_simple_buffer<numbers::digit_count(HearthBeatIntervalSec)>(HearthBeatIntervalSec);
             
-            return new_message_from_fields<MSG::LOGON>(conn, {
+            return new_message_from_fields<ENCODE_TYPE::LOGON>(conn, {
                 {"98", "0" },
                 {"108", std::string(hearthBeat.data, hearthBeat.data+hearthBeat.size) },
                 {"141", "Y" },
@@ -73,17 +73,17 @@ namespace ctrader::data::message_data {
 
         };
 
-        template<> consteval message_t<MSG::TEST_REQ> new_message_from_type(CONN conn){
+        template<> consteval message_t<ENCODE_TYPE::TEST_REQ> new_message_from_type(CONN_TYPE conn){
             std::string testRegID = TestReqIDMinsize == 4 ? "TEST" : std::string(TestReqIDMinsize, 'T').c_str();
 
-            return new_message_from_fields<MSG::TEST_REQ>(conn, {
+            return new_message_from_fields<ENCODE_TYPE::TEST_REQ>(conn, {
                 {"112", testRegID}
             });   
         }
 
-        template<> consteval message_t<MSG::MD_REQ_SUB_DEPTH> new_message_from_type(CONN conn){
+        template<> consteval message_t<ENCODE_TYPE::MD_REQ_SUB_DEPTH> new_message_from_type(CONN_TYPE conn){
             
-            return new_message_from_fields<MSG::MD_REQ_SUB_DEPTH>(conn, {
+            return new_message_from_fields<ENCODE_TYPE::MD_REQ_SUB_DEPTH>(conn, {
                 {"262", std::string(KeySize, '0')},
                 {"263", "1"}, {"264", "0"}, {"265", "1"}, {"267", "2"}, {"269", "0"}, {"269", "1"}, 
                 {"146", "1"}, {"55", std::string(20, '0') }
@@ -95,18 +95,18 @@ namespace ctrader::data::message_data {
     } // internal 
 
     namespace quote {
-        using namespace ctrader::types::message;
+        using namespace ctrader::types::encode;
 
-        constinit auto LOGON = internal::new_message_from_type<MSG::LOGON>(CONN::QUOTE);
-        constinit auto TEST_REQ = internal::new_message_from_type<MSG::TEST_REQ>(CONN::QUOTE);
-        constinit auto MD_REQ_SUB_DEPTH = internal::new_message_from_type<MSG::MD_REQ_SUB_DEPTH>(CONN::QUOTE);
+        constinit auto LOGON = internal::new_message_from_type<ENCODE_TYPE::LOGON>(CONN_TYPE::QUOTE);
+        constinit auto TEST_REQ = internal::new_message_from_type<ENCODE_TYPE::TEST_REQ>(CONN_TYPE::QUOTE);
+        constinit auto MD_REQ_SUB_DEPTH = internal::new_message_from_type<ENCODE_TYPE::MD_REQ_SUB_DEPTH>(CONN_TYPE::QUOTE);
     } // quote 
 
     namespace trade {
-        using namespace ctrader::types::message;
+        using namespace ctrader::types::encode;
 
-        constinit auto LOGON = internal::new_message_from_type<MSG::LOGON>(CONN::TRADE);
-        constinit auto TEST_REQ = internal::new_message_from_type<MSG::TEST_REQ>(CONN::TRADE);
+        constinit auto LOGON = internal::new_message_from_type<ENCODE_TYPE::LOGON>(CONN_TYPE::TRADE);
+        constinit auto TEST_REQ = internal::new_message_from_type<ENCODE_TYPE::TEST_REQ>(CONN_TYPE::TRADE);
     } // trade 
 
  

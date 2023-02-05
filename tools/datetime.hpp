@@ -9,7 +9,7 @@ namespace ctrader::tools::datetime {
 
     namespace internal{
 
-         const char* zero_buff = "|52=00000000-00:00:00.000000|49=";
+         static const char* zero_buff = "|52=00000000-00:00:00.000000|49=";
 
     }
 
@@ -25,7 +25,7 @@ namespace ctrader::tools::datetime {
         year_month_day ymd{local_time_in_days};
         hh_mm_ss hms{local_time-local_time_in_days};
         
-        //clear buffer with zeros to allow signle digits to be represented correct as '05' vs 'n5'
+        // clear buffer with zeros to allow signle digits to be represented correct as '05' vs 'n5'
         memory::memcpy_32(out, internal::zero_buff); 
 
         numbers::to_string(out+4, out+8, int{ymd.year()});

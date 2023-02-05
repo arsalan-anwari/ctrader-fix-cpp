@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types/message.hpp"
+#include "types/encode.hpp"
 #include "tools/numbers.hpp"
 #include "header.hpp"
 
@@ -10,9 +10,9 @@ namespace ctrader::data::body {
     namespace internal{
         using namespace ctrader::settings;
         using namespace ctrader::data::header;
-        using namespace ctrader::types::message;
+        using namespace ctrader::types::encode;
 
-        template<MSG T> struct body_t{};
+        template<ENCODE_TYPE T> struct body_t{};
 
         consteval uint16_t calc_body_length_header_part(){
             return (
@@ -37,9 +37,9 @@ namespace ctrader::data::body::internal{
 
 using namespace ctrader::settings;
 using namespace ctrader::tools;
-using namespace ctrader::types::message;
+using namespace ctrader::types::encode;
 
-template<> struct body_t<MSG::LOGON> {
+template<> struct body_t<ENCODE_TYPE::LOGON> {
     union{
         struct {
             char EncryptMethod[5];
@@ -52,7 +52,7 @@ template<> struct body_t<MSG::LOGON> {
     };
 };
 
-template<> struct body_t<MSG::TEST_REQ> {
+template<> struct body_t<ENCODE_TYPE::TEST_REQ> {
     union{
         struct {
             char TestReqID[ TestReqIDMinsize + 5 ];
@@ -78,9 +78,9 @@ struct _MD_REQ {
     };
 };
 
-template<> struct body_t<MSG::MD_REQ_SUB_DEPTH> : _MD_REQ {};
-template<> struct body_t<MSG::MD_REQ_SUB_SPOT> : _MD_REQ {};
-template<> struct body_t<MSG::MD_REQ_UNSUB_DEPTH> : _MD_REQ {};
-template<> struct body_t<MSG::MD_REQ_UNSUB_SPOT> : _MD_REQ {};
+template<> struct body_t<ENCODE_TYPE::MD_REQ_SUB_DEPTH> : _MD_REQ {};
+template<> struct body_t<ENCODE_TYPE::MD_REQ_SUB_SPOT> : _MD_REQ {};
+template<> struct body_t<ENCODE_TYPE::MD_REQ_UNSUB_DEPTH> : _MD_REQ {};
+template<> struct body_t<ENCODE_TYPE::MD_REQ_UNSUB_SPOT> : _MD_REQ {};
 
 }
