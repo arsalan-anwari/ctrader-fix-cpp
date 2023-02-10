@@ -6,6 +6,7 @@
 
 namespace ctrader::data::body {
 
+    using namespace ctrader::types::numbers; 
 
     namespace internal{
         using namespace ctrader::settings;

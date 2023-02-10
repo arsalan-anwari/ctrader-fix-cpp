@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cmath> // std::log10, std::floor, std::abs
+#include <algorithm> // std::fill_n
+
 #include "types/numbers.hpp"
 
 #include "memory.hpp"
@@ -16,8 +19,14 @@ namespace ctrader::tools::numbers {
         i32 ne(i32 a, i32 b){ return !!(a ^ b); }
     }
 
+    template<typename VAL, typename RET = VAL>
     inline __attribute__((always_inline)) 
-    void overflow_correction(i64& val, i64& base, u32& digit_size){
+    consteval RET digit_count(VAL val){
+            return static_cast<RET>(std::floor( std::log10( val ) )) + 1;
+    }
+
+    inline __attribute__((always_inline)) 
+    void overflow_correction(const i64 val, i64& base, u32& digit_size){
         const i64 new_base[3] = { (base * 10U), (base * 10U), base }; 
         const u32 new_digit_size[3] = { (digit_size + 1U), (digit_size + 1U), digit_size };
         i64 res = base - val;
@@ -91,5 +100,15 @@ namespace ctrader::tools::numbers {
 
         return {total_msg_size, msg_digit_size};
     }
+
+
+    template<std::size_t N, typename T> requires std::unsigned_integral<T>
+    consteval simple_buffer_t<char, N> to_simple_buffer(T val){
+        simple_buffer_t<char, N> buff;
+        std::fill_n(buff.data, N, '0');
+        to_string(buff.data, buff.data+buff.size, val);
+        return buff;
+    }
+
 
 }

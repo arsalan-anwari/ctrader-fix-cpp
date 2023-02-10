@@ -7,6 +7,8 @@ namespace ctrader::data::header {
     namespace internal {
 
         using namespace ctrader::settings;
+        using namespace ctrader::types::numbers; 
+    
 
         consteval u32 calc_header_size(){
             return (

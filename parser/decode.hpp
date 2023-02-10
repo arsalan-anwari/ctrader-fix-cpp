@@ -92,7 +92,7 @@ namespace algorithms {
         market_index_filter& market_remove_index_filter
     ){
     
-        const u32 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
+        static const u32 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
 
         // Precalculate first entry (always starts at i=0)
         u32 message_type = ( data[5] - '0' );
@@ -195,7 +195,7 @@ struct Decoder{
     u32 decode(const char* data, const u8 msg_seq_num_digit_size){ 
         if constexpr (T == DECODE_TYPE::MARKET_DATA_INCREMENTAL){
             decode_metadata meta = internal::get_message_meta(data, msg_seq_num_digit_size);
-            auto entries = numbers::to_num_estimate<u32, 3>(data+meta.offset+5);
+            auto entries = numbers::to_num_estimate<u32, 2>(data+meta.offset+5);
 
             algorithms::parsing_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
                 data+meta.offset+5+entries.digit_count, meta.size-(5+entries.digit_count), entries.value, 

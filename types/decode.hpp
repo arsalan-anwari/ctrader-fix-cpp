@@ -48,11 +48,11 @@ namespace ctrader::types::decode {
     
 
     template<DATA_TYPE T>
-    using message_container = simple_buffer_t<decode_data<T>, 128>;
+    using message_container = simple_buffer_t<decode_data<T>, 100>;
 
-    using market_index_container = sparse_chunk_buffer_2d_t<index_range, 128, 4>;
+    using market_index_container = sparse_chunk_buffer_2d_t<index_range, 100, 4>;
 
-    using market_index_filter = simple_buffer_t<u8, 128>;
+    using market_index_filter = simple_buffer_t<u8, 100>;
 
 
 

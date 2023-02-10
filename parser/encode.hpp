@@ -44,20 +44,20 @@ namespace internal {
 
     template<ENCODE_TYPE M, CONN_TYPE C, typename... FIELD_TYPE> 
      inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    void prepare_message(const i64& msg_seq_num, FIELD_TYPE... fields){
+    void prepare_message(const i64 msg_seq_num, FIELD_TYPE... fields){
         static_assert( 
             (M == ENCODE_TYPE::MD_REQ_SUB_DEPTH) && (C != CONN_TYPE::TRADE),
             "Message type: MD_REQ_SUB_DEPTH Cannot be used with Connection type: TRADE!"  
         );
     }
 
-    template<> void prepare_message<ENCODE_TYPE::LOGON, CONN_TYPE::QUOTE>(const i64& msg_seq_num){ __PREPARE_DEFAULT(quote::LOGON); };
-    template<> void prepare_message<ENCODE_TYPE::LOGON, CONN_TYPE::TRADE>(const i64& msg_seq_num){ __PREPARE_DEFAULT(trade::LOGON); };
+    template<> void prepare_message<ENCODE_TYPE::LOGON, CONN_TYPE::QUOTE>(const i64 msg_seq_num){ __PREPARE_DEFAULT(quote::LOGON); };
+    template<> void prepare_message<ENCODE_TYPE::LOGON, CONN_TYPE::TRADE>(const i64 msg_seq_num){ __PREPARE_DEFAULT(trade::LOGON); };
 
-    template<> void prepare_message<ENCODE_TYPE::TEST_REQ, CONN_TYPE::QUOTE>(const i64& msg_seq_num){ __PREPARE_DEFAULT(quote::TEST_REQ); };
-    template<> void prepare_message<ENCODE_TYPE::TEST_REQ, CONN_TYPE::TRADE>(const i64& msg_seq_num){ __PREPARE_DEFAULT(trade::TEST_REQ); };
+    template<> void prepare_message<ENCODE_TYPE::TEST_REQ, CONN_TYPE::QUOTE>(const i64 msg_seq_num){ __PREPARE_DEFAULT(quote::TEST_REQ); };
+    template<> void prepare_message<ENCODE_TYPE::TEST_REQ, CONN_TYPE::TRADE>(const i64 msg_seq_num){ __PREPARE_DEFAULT(trade::TEST_REQ); };
 
-    template<> void prepare_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH, CONN_TYPE::QUOTE>(const i64& msg_seq_num, const SYMBOL symbol, const char* mdReqId ){ 
+    template<> void prepare_message<ENCODE_TYPE::MD_REQ_SUB_DEPTH, CONN_TYPE::QUOTE>(const i64 msg_seq_num, const SYMBOL symbol, const char* mdReqId ){ 
         __PREPARE_HEADER(quote::MD_REQ_SUB_DEPTH);
         
         std::memcpy(message_data::quote::MD_REQ_SUB_DEPTH.body.field.MDReqID+5, mdReqId, KeySize);
@@ -79,12 +79,7 @@ namespace internal {
 
 template<CONN_TYPE C>
 struct Encoder {
-    Encoder(): 
-        msg_seq_num(1),
-        msg_seq_num_base(10),
-        msg_seq_num_digit_size(1)
-    {};
-
+   
     template<ENCODE_TYPE M, typename... FIELD_TYPE> 
     inline __attribute__((always_inline))
     void encode_message(FIELD_TYPE... fields) { 
@@ -111,9 +106,9 @@ struct Encoder {
     u8 get_seq_num_digit_size() { return msg_seq_num_digit_size; };
 
 private:
-        i64 msg_seq_num;
-        i64 msg_seq_num_base;
-        u8 msg_seq_num_digit_size;
+        i64 msg_seq_num = 1;
+        i64 msg_seq_num_base = 10;
+        u32 msg_seq_num_digit_size = 1;
 
 };
 

@@ -1,9 +1,10 @@
 #pragma once
 
+#include <string_view>
 #include "types/numbers.hpp"
 
 namespace ctrader::types::encode {
-
+    
     using namespace ctrader::types::numbers;
 
     enum class ENCODE_TYPE : u8 {
@@ -22,6 +23,6 @@ namespace ctrader::types::encode {
         QUOTE, TRADE
     };
 
-    const char* const CONN_STRING[2] = { "QUOTE", "TRADE" };
+    constexpr std::string_view CONN_STRING[2] = { "QUOTE", "TRADE" };
 
 } // ctrader::types::encode
