@@ -1,22 +1,23 @@
 #pragma once
 
-#include <stdint.h>
+#include "types/numbers.hpp"
 
 namespace ctrader::types::memory {
+    using namespace ctrader::types::numbers;
 
-    template <typename T, size_t N>
+    template <typename T, auto N>
     struct simple_buffer_t{
-        const size_t size = N;
-        size_t real_size = 0;
+        const std::size_t size = N;
+        std::size_t data_len = 0;
         T data[N];
     };
 
-    template <typename T, size_t CHUNK_SIZE, size_t CHUNK_NUM>
+    template <typename T, auto CHUNK_SIZE, auto CHUNK_NUM>
     struct sparse_chunk_buffer_2d_t {
-        const size_t chunk_size = CHUNK_SIZE;
+        const std::size_t chunk_size = CHUNK_SIZE;
         T data[CHUNK_SIZE*CHUNK_NUM];
-        constexpr T* operator[](size_t i){ return &data[chunk_size*i];  };
-        const constexpr T* operator[](size_t i) const { return &data[ chunk_size*i ]; }
+        constexpr T* operator[](const auto i){ return &data[chunk_size*i];  };
+        const constexpr T* operator[](const auto i) const { return &data[ chunk_size*i ]; }
     };
 
 }

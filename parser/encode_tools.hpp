@@ -13,7 +13,7 @@ using namespace ctrader::tools::concepts;
 template<CONN_TYPE C, typename TIME_PERIOD = std::chrono::nanoseconds> 
 requires is_time_duration<TIME_PERIOD>
 struct ClockSync {
-    ClockSync(const uint16_t cycle_ns) :
+    ClockSync(const u16 cycle_ns) :
         clock( TIME_PERIOD{ cycle_ns } )
     {};
 

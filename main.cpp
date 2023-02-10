@@ -144,11 +144,12 @@
 
 
 #include <stdio.h>
-#include <stdint.h>
+
+#include "types/numbers.hpp"
 
 #include "parser/decode.hpp"
 
-const char* data = 
+const char* data1 = 
 "8=FIX.4.4|9=1128"
 "|35=X|34=3|49=cServer|50=QUOTE|52=20230124-13:30:46.130|56=demo.icmarkets.8536054"
 "|268=25"
@@ -179,40 +180,86 @@ const char* data =
 "|279=2|278=2291666387|55=1"
 "|10=244|";
 
+const char* data2 = 
+"8=FIX.4.4|9=855"
+"|35=X|34=4|49=cServer|50=QUOTE|52=20230124-13:30:46.692|56=demo.icmarkets.8536054"
+"|268=18"
+"|279=0|269=1|278=2291668712|55=1|270=1.08754|271=3000000"
+"|279=0|269=1|278=2291668713|55=1|270=1.08755|271=5000000"
+"|279=0|269=1|278=2291668705|55=1|270=1.08772|271=50000000"
+"|279=0|269=1|278=2291668706|55=1|270=1.08753|271=1500000"
+"|279=0|269=1|278=2291668707|55=1|270=1.08758|271=10000000"
+"|279=0|269=1|278=2291668709|55=1|270=1.08749|271=50000"
+"|279=0|269=1|278=2291668711|55=1|270=1.0875|271=100000"
+"|279=2|278=2291667248|55=1"
+"|279=2|278=2291667249|55=1"
+"|279=2|278=2291667250|55=1"
+"|279=2|278=2291667252|55=1"
+"|279=2|278=2291667253|55=1"
+"|279=2|278=2291667254|55=1"
+"|279=0|269=0|278=2291668699|55=1|270=1.08749|271=150000"
+"|279=0|269=0|278=2291668700|55=1|270=1.08727|271=50000000"
+"|279=0|269=0|278=2291668703|55=1|270=1.08736|271=20000000"
+"|279=2|278=2291667244|55=1|279=2|278=2291667247|55=1"
+"|10=105|";
+
 int main(){
 
     using namespace ctrader::parser::decode;
-    // uint16_t absolute_offset = 153;
-    // uint8_t found_idx = 5;
-    // uint16_t absolute_offset_lookup[2] = {0, absolute_offset+found_idx-1};
-    // uint16_t absolute_offset_lookup_idx = 
-    // static_cast<uint8_t>(
-    //         ((absolute_offset - found_idx) < absolute_offset) && ( (absolute_offset + found_idx) - 1 )
-    // );
-
-    // printf("%u\n", absolute_offset_lookup[absolute_offset_lookup_idx] );
 
     Decoder decoder;
-    uint8_t result = decoder.decode<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(data, 1, SYMBOL::EUR_USD);
-    printf("num_entries= %u\n", result);
+    auto result = decoder.decode<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(data1, 1);
+    printf("num_entries= %u: \n\n", result);
 
-    for(int i=0; i<25; i++){
+// un-filtered
+    for(u32 i=0; i<128; i++){
         printf(
             "[%i, %i] ", 
             decoder.market_incremental_indices[0][i].begin,
             decoder.market_incremental_indices[0][i].end 
         );
+        
     }
 
     printf("\n\n");
 
-    for(int i=0; i<25; i++){
+    for(u32 i=0; i<128; i++){
         printf(
             "[%i, %i] ", 
             decoder.market_incremental_indices[2][i].begin,
             decoder.market_incremental_indices[2][i].end 
         );
+        
     }
+
+
+// filtered 
+    printf("\n\nADD [%u]: ", decoder.market_incremental_insert_index_filter.data_len);
+
+    for(u32 i=1; i<decoder.market_incremental_insert_index_filter.data_len+1; i++){
+        u32 idx = decoder.market_incremental_insert_index_filter.data[i];
+
+        printf(
+            "[%i, %i] ", 
+            decoder.market_incremental_indices[0][idx].begin,
+            decoder.market_incremental_indices[0][idx].end 
+        );
+
+    }
+
+    printf("\n\nDELETE [%u]: ", decoder.market_incremental_remove_index_filter.data_len);
+
+     for(u32 i=1; i<decoder.market_incremental_remove_index_filter.data_len+1; i++){
+        u32 idx = decoder.market_incremental_remove_index_filter.data[i];
+        
+        printf(
+            "[%i, %i] ", 
+            decoder.market_incremental_indices[2][idx].begin,
+            decoder.market_incremental_indices[2][idx].end 
+        );
+    }
+
+    printf("\n\n");
 
 
 

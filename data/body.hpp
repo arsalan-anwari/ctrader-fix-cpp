@@ -14,7 +14,7 @@ namespace ctrader::data::body {
 
         template<ENCODE_TYPE T> struct body_t{};
 
-        consteval uint16_t calc_body_length_header_part(){
+        consteval u16 calc_body_length_header_part(){
             return (
                 4 + 5 + // 35=?|34=?
                 32 + // |52=timestamp|..
@@ -25,8 +25,8 @@ namespace ctrader::data::body {
 
     }
 
-    constexpr uint16_t BodyLengthHeaderPart = internal::calc_body_length_header_part();
-    constexpr uint8_t TestReqIDMinsize = (BodyLengthHeaderPart + 5) < 100 ? (100 - (BodyLengthHeaderPart + 5)) + 1 : 4; 
+    constexpr u16 BodyLengthHeaderPart = internal::calc_body_length_header_part();
+    constexpr u8 TestReqIDMinsize = (BodyLengthHeaderPart + 5) < 100 ? (100 - (BodyLengthHeaderPart + 5)) + 1 : 4; 
 
 } // ctrader::data::message
 

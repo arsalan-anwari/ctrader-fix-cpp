@@ -1,22 +1,24 @@
 #pragma once
 
-#include <stdint.h>
 #include <x86intrin.h>
+
+#include "types/numbers.hpp"
 #include "tools/concepts.hpp"
 
 namespace ctrader::parser {
 
     using namespace ctrader::tools::concepts;
+    using namespace ctrader::types::numbers;
 
-    template<std::size_t SIZE, uint8_t REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
+    template<std::size_t SIZE, u8 REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
      inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    uint8_t calc_checksum( const char* data ){
+    u8 calc_checksum( const char* data ){
         const __m256i zeroVec = _mm256_setzero_si256();
         const __m256i oneVec = _mm256_set1_epi16(1);
         __m256i accum = _mm256_setzero_si256();
 
         unsigned int remainder = 0;
-        for(uint8_t i=0; i < REM; i++) { remainder += static_cast<unsigned int>(data[i]); }
+        for(u8 i=0; i < REM; i++) { remainder += static_cast<unsigned int>(data[i]); }
 
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
             __m256i vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(data + offset + REM) );

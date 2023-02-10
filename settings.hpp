@@ -1,15 +1,17 @@
 #pragma once
 
 #include <string_view>
-#include <stdint.h>
+
+#include "types/numbers.hpp"
 
 #include "data/field_id.hpp"
 
 namespace ctrader::settings {
+    using namespace ctrader::types::numbers;
 
-    constexpr uint8_t           HearthBeatIntervalSec = 30;
-    constexpr uint8_t           MsgSeqNumDigitSize = 18; // range {1 ... 18}
-    constexpr uint8_t           KeySize = ctrader::data::field_id::KeySize;
+    constexpr u8           HearthBeatIntervalSec = 30;
+    constexpr u8           MsgSeqNumDigitSize = 18; // range {1 ... 18}
+    constexpr u8           KeySize = ctrader::data::field_id::KeySize;
     constexpr char              SOHChar = '|'; //mostly used for debugging output, set to '\1' on release
     #define __SETTINGS_SOH "|"
 

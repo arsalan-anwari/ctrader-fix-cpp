@@ -9,7 +9,7 @@ import os
 
 namespace ctrader::data::field_id{
 
-    constexpr uint16_t KeyNum = ...;
+    constexpr u16 KeyNum = ...;
 
     constexpr uint8_t KeySize = ...;
 
@@ -41,7 +41,7 @@ with open(filePath, "w") as file:
     file.write("#pragma once\n\n")
     file.write("#include <stdint.h>\n\n")
     file.write("namespace ctrader::data::field_id{\n\n")
-    file.write("\tconstexpr uint16_t KeyNum = " + str(keyNum) + ";\n\n" )
+    file.write("\tconstexpr u16 KeyNum = " + str(keyNum) + ";\n\n" )
     file.write("\tconstexpr uint8_t KeySize = " + str(keySize) + ";\n\n" )
     file.write("\tconst char* const Keys[] = {\n")
 

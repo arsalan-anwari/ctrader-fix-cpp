@@ -1,9 +1,9 @@
 #pragma once
 
 #include <stdio.h>
-
-#include <cstring>
 #include <string>
+
+#include <bitset>
 
 #include "types/decode.hpp"
 #include "types/symbol.hpp"
@@ -27,40 +27,30 @@ namespace internal {
     #define __DECODE_GEN_PATTERN(pattern) __SETTINGS_SOH #pattern
 
     inline __attribute__((always_inline))
-    uint8_t find_pattern_32a(const char* text, const char* pattern){
+    u32 find_pattern_32a(const char* text, const char* pattern){
         std::string _text(text, 32);
         std::string _pattern(pattern, 4);
         auto pos = _text.find(_pattern);
-        if (pos == std::string::npos){ return 0; }
-        return static_cast<uint8_t> (pos + 1);
+        if (pos == std::string::npos){ return 0U; }
+        return pos + 1;
     };
-
-    inline __attribute__((always_inline))
-    uint8_t find_pattern_normal(const char* text, const char* pattern, uint8_t size){
-        std::string _text(text, size);
-        std::string _pattern(pattern, 4);
-        auto pos = _text.find(_pattern);
-        if (pos == std::string::npos){ return 0; }
-        return static_cast<uint8_t> (pos + 1);
-    };
-    
 
     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    decode_metadata get_message_meta(const char* data, const uint8_t msg_seq_num_digit_size){
+    decode_metadata get_message_meta(const char* data, const u32 msg_seq_num_digit_size){
 
-        auto msg_size_info = numbers::to_num_estimate<uint16_t, 4>(data+12);
+        auto msg_size_info = numbers::to_num_estimate<u32, 4>(data+12);
 
-        const uint16_t header_size = ( 
-            9 + // |35=X|34=
+        const u32 header_size = ( 
+            9U + // |35=X|34=
             msg_seq_num_digit_size + // {0:1-18}
-            49 + // |49=cServer|50=QUOTE|52=20230124-13:30:46.130|56=
+            49U + // |49=cServer|50=QUOTE|52=20230124-13:30:46.130|56=
             broker_settings::SenderCompID.size() // demo.icmarkets.8536054
         );
 
-        const uint16_t size = msg_size_info.value - header_size;
+        const u32 size = msg_size_info.value - header_size;
 
-        const uint16_t offset = (
-            12 + // 8=FIX.4.4|9=
+        const u32 offset = (
+            12U + // 8=FIX.4.4|9=
             msg_size_info.digit_count + // {0:1-4}
             header_size 
         );
@@ -76,91 +66,98 @@ namespace algorithms {
 
     namespace market_orders{
 
-        inline __attribute__((always_inline))
-        void create_insert_order_inc(const char* data, decode_data<DATA_TYPE::MARKET_DATA>& entry, const SYMBOL symbol, uint16_t start, uint16_t end){
-            entry.UpdateAction = UPDATE_ACTION::NEW;
-            entry.EntryType = ENTRY_TYPE_LOOKUP[ static_cast<uint8_t>( data[start+11] ) ];
-            entry.EntryId = numbers::to_num<int64_t, 10>(data+start+17);
-            entry.Symbol = symbol;
-        }
+        // |279=0|269=1|278=2291668712|55=1|270=1.08754|271=3000000
+        // inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+        // void create_insert_order_inc(const char* data, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 start, u16 end){
+        //     entry.UpdateAction = UPDATE_ACTION::NEW;
+        //     entry.EntryType = ENTRY_TYPE_LOOKUP[ static_cast<u8>( data[start+11] ) ];
+        //     entry.EntryId = numbers::to_num<i64, 10>(data+start+17);
+        //     std::bitset<20> symbol_pos;
+        //     for (u8 i=0; i < 20; i++){
+                 
+        //     }
+
+        // }
     }
 
     template<DECODE_TYPE T, typename... CONTAINER_TYPE>
     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    void parsing_algorithm( const char* data, uint16_t size, const uint16_t num_entries, const SYMBOL symbol, CONTAINER_TYPE&& ... containers  ){};
+    void parsing_algorithm( const char* data, const u32 size, const u32 num_entries, CONTAINER_TYPE&& ... containers  );
 
     template<> void parsing_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>
-    (   const char* data, uint16_t size, const uint16_t num_entries, const SYMBOL symbol,
+    (   const char* data, const u32 size, const u32 num_entries,
         message_container<DATA_TYPE::MARKET_DATA>& market_data,
         market_index_container& market_indices,
         market_index_filter& market_insert_index_filter,
         market_index_filter& market_remove_index_filter
     ){
     
-        const uint8_t base_skip_size_lookup[4] = {50, 4, 26, 4};
+        const u32 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
 
         // Precalculate first entry (always starts at i=0)
-        uint8_t message_type = static_cast<uint8_t>( data[5] - '0' );
+        u32 message_type = ( data[5] - '0' );
         market_indices[message_type][0].begin = 0;
-        uint16_t absolute_offset = base_skip_size_lookup[message_type];
-        uint8_t old_message_type = message_type;
-        uint16_t mi_idx = 1;
+        u32 absolute_offset = base_skip_size_lookup[message_type];
+        u32 old_message_type = message_type;
+        u32 mi_idx = 1;
 
-        // Handle vectorized market_indices calculations
-        for(uint16_t i=0; i<num_entries; i++){
+        // Handle unrolled vectorized market_indices calculations
+        for(u32 i=0; i<25; i++){
             // Offset calculations
-            bool is_vectorizable = (absolute_offset + 32) < size;
+            u32 is_vectorizable = numbers::op::let( (absolute_offset + 32), size);
 
-            uint16_t chunk_start = absolute_offset * is_vectorizable;
+            u32 chunk_start = absolute_offset * is_vectorizable;
             
-            uint8_t search_idx = internal::find_pattern_32a(data+chunk_start, "|279");
-            bool idx_found = search_idx > 0;
+            u32 search_idx = internal::find_pattern_32a(data+chunk_start, "|279");
+            u32 idx_found = numbers::op::get( search_idx, 0);
 
-            uint8_t relative_offset = ((search_idx - 1) * (idx_found && is_vectorizable));
-            uint16_t message_type_idx = ((chunk_start * idx_found) + relative_offset) * is_vectorizable;
-            uint8_t new_message_type = ((( data[message_type_idx + 5] - '0' ) + ( (!idx_found) || (!is_vectorizable) )));
+            u32 relative_offset = ((search_idx - 1U) * (idx_found & is_vectorizable));
+            u32 message_type_idx = ((chunk_start * idx_found) + relative_offset) * is_vectorizable;
+            u32 new_message_type = ((( data[message_type_idx + 5U] - '0' ) + ( (idx_found ^ 1) | (is_vectorizable ^ 1) )));
 
-            uint8_t skip_size = (base_skip_size_lookup[new_message_type] + relative_offset) * is_vectorizable;
+            u32 skip_size = (base_skip_size_lookup[new_message_type] + relative_offset) * is_vectorizable;
 
-            uint16_t insert_value = absolute_offset + relative_offset;
+            u32 insert_value = absolute_offset + relative_offset;
             absolute_offset += skip_size;
 
             // Insert calculations
-            uint16_t new_mi_idx = mi_idx;
-            uint16_t old_mi_idx = (new_mi_idx-1);
+            u32 new_mi_idx = mi_idx;
+            u32 old_mi_idx = (new_mi_idx-1);
 
             market_indices[ new_message_type ][ new_mi_idx ].begin = insert_value; 
             market_indices[ old_message_type ][ old_mi_idx ].end = insert_value;
 
             old_message_type = new_message_type;
-            mi_idx += (idx_found && is_vectorizable);
+            mi_idx += (idx_found & is_vectorizable);
         }
 
         // Handle last part of market_indices
-        uint8_t end_size = size - absolute_offset;
-        uint8_t search_idx = internal::find_pattern_normal(data+absolute_offset, "|279", end_size);
-        bool idx_found = search_idx > 0;
-        
-        uint16_t relative_offset = (absolute_offset + (search_idx - 1)) * idx_found;
-        uint8_t new_message_type = ( data[relative_offset + 5] - '0' ) + (!idx_found);
+        u32 end_size = size - absolute_offset;
+        u32 padding_size = 32U - end_size;
 
-        uint16_t new_mi_idx = mi_idx;
-        uint16_t old_mi_idx = (new_mi_idx-1);
+        u32 search_idx = internal::find_pattern_32a(data+(absolute_offset-padding_size), "|279");
+        u32 idx_found = numbers::op::get( search_idx, 0);
+  
+        u32 relative_offset = (absolute_offset + ((search_idx - 1U) - padding_size)) * idx_found;
+        u32 new_message_type = ( data[relative_offset + 5] - '0' ) + (idx_found ^ 1U);
+        
+        u32 new_mi_idx = mi_idx;
+        u32 old_mi_idx = (new_mi_idx-1);
         market_indices[ new_message_type ][ new_mi_idx ].begin = relative_offset; 
         market_indices[ old_message_type ][ old_mi_idx ].end = relative_offset;
         market_indices[ new_message_type ][ new_mi_idx ].end = size;
 
         // Filter out found index ranges and stores in temporary array
-        uint8_t market_insert_count = 0, market_remove_count = 0, market_insert_idx = 0, market_remove_idx = 0;
+        u32 market_insert_count = 0, market_remove_count = 0, market_insert_idx = 0, market_remove_idx = 0;
 
-        for (uint8_t i = 0; i < num_entries + 1; i++){
-            auto begin_insert = market_indices[0][i].begin;
-            auto end_insert = market_indices[0][i].end;
-            auto begin_remove = market_indices[2][i].begin;
-            auto end_remove = market_indices[2][i].end;
+        for (u32 i = 0; i < num_entries; i++){
+            i32 begin_insert = market_indices[0][i].begin;
+            i32 end_insert = market_indices[0][i].end;
+            i32 begin_remove = market_indices[2][i].begin;
+            i32 end_remove = market_indices[2][i].end;
 
-            bool result_state_insert = (begin_insert > -1 || end_insert > -1) && (begin_insert != end_insert);
-            bool result_state_remove = (begin_remove > -1 || end_remove > -1) && (begin_remove != end_remove);
+            u32 result_state_insert = numbers::op::ne(begin_insert, end_insert); 
+            u32 result_state_remove = numbers::op::ne(begin_remove, end_remove); 
 
             market_insert_idx += result_state_insert;
             market_insert_count += result_state_insert;
@@ -171,8 +168,10 @@ namespace algorithms {
             market_remove_index_filter.data[ market_remove_idx * result_state_remove ] = i;
         }
 
-        // uint8_t market_data_idx = 0;
-        // for (uint8_t i=1; i < market_insert_count+1; i++){
+        market_insert_index_filter.data_len = market_insert_count;
+        market_remove_index_filter.data_len = market_remove_count;
+        // u8 market_data_idx = 0;
+        // for (u8 i=1; i < market_insert_count+1; i++){
         //     auto filter_idx = market_insert_index_filter.data[i];
             
         //     decode_data<DATA_TYPE::MARKET_DATA>& entry = market_data[market_data_idx++];
@@ -193,13 +192,13 @@ struct Decoder{
 
     template<DECODE_TYPE T>
     inline __attribute__((always_inline))
-    uint8_t decode(const char* data, const uint8_t msg_seq_num_digit_size, const SYMBOL symbol){ 
+    u32 decode(const char* data, const u8 msg_seq_num_digit_size){ 
         if constexpr (T == DECODE_TYPE::MARKET_DATA_INCREMENTAL){
             decode_metadata meta = internal::get_message_meta(data, msg_seq_num_digit_size);
-            auto entries = numbers::to_num_estimate<uint16_t, 3>(data+meta.offset+5);
+            auto entries = numbers::to_num_estimate<u32, 3>(data+meta.offset+5);
 
             algorithms::parsing_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
-                data+meta.offset+5+entries.digit_count, meta.size-(5+entries.digit_count), entries.value, symbol, 
+                data+meta.offset+5+entries.digit_count, meta.size-(5+entries.digit_count), entries.value, 
                 market_data, market_incremental_indices, market_incremental_insert_index_filter, market_incremental_remove_index_filter
             ); 
 

@@ -24,8 +24,8 @@ namespace ctrader::data::message_data {
         template<ENCODE_TYPE T>
         consteval message_t<T> new_message_from_fields( CONN_TYPE conn, std::initializer_list<field_t> fields ){
             message_t<T> buff;
-            const char msgType = ENCODE_CHAR[static_cast<uint8_t>(T)];
-            const uint16_t bodylen = ( BodyLengthHeaderPart + sizeof(buff.body.raw));
+            const char msgType = ENCODE_CHAR[static_cast<u8>(T)];
+            const u16 bodylen = ( BodyLengthHeaderPart + sizeof(buff.body.raw));
     
             static_assert(bodylen >= 100, "Cannot generate message_data as some messages have a 'BodyLength' field value (9=...) lower than 100!");
             static_assert(bodylen <= 999, "Cannot generate message_data as some messages have a 'BodyLength' field value (9=...) higher than 999!");
@@ -42,10 +42,10 @@ namespace ctrader::data::message_data {
                 field_t{"52", std::string(24, '0') },
                 field_t{"49", std::string(broker_settings::SenderCompID.data()) },
                 field_t{"56", std::string("cServer") },
-                field_t{"57", std::string( CONN_STRING[ static_cast<uint8_t>(conn) ].data() ) }
+                field_t{"57", std::string( CONN_STRING[ static_cast<u8>(conn) ].data() ) }
             };
             
-            for(uint8_t i=0; i<7; i++){ data += ( HeaderFields[i].key + "=" + HeaderFields[i].value + SOHChar ); }
+            for(u8 i=0; i<7; i++){ data += ( HeaderFields[i].key + "=" + HeaderFields[i].value + SOHChar ); }
             for(const auto& field: fields){ data += (field.key + "=" + field.value + SOHChar ); }
 
             data += "10=000";

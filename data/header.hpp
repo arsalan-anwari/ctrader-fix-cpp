@@ -8,7 +8,7 @@ namespace ctrader::data::header {
 
         using namespace ctrader::settings;
 
-        consteval uint32_t calc_header_size(){
+        consteval u32 calc_header_size(){
             return (
                 2 + 7 + // 8=FIX.4.4
                 3 + 3 + // |9=???
@@ -22,8 +22,8 @@ namespace ctrader::data::header {
             );
         };
 
-        consteval uint32_t calc_header_remainder_size(uint32_t total){
-            uint32_t begin = 
+        consteval u32 calc_header_remainder_size(u32 total){
+            u32 begin = 
                 2 + 7 + // 8=FIX.4.4
                 3 + 3 + // |9=???
                 4 + 1 + // |35=?

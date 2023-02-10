@@ -1,11 +1,12 @@
 #pragma once
 
-#include <stdint.h>
-// #include <string_view>
+#include "types/numbers.hpp"
+
 
 namespace ctrader::types::symbol {
+    using namespace ctrader::types::numbers;
 
-    enum class SYMBOL : uint64_t {
+    enum class SYMBOL : u64 {
         UNKNOWN = 0UL,
         EUR_USD = 1UL
     };
@@ -14,7 +15,7 @@ namespace ctrader::types::symbol {
         SYMBOL::UNKNOWN, SYMBOL::EUR_USD
     };
 
-    constexpr uint8_t SYMBOL_DIGIT_SIZE[] = {
+    constexpr u8 SYMBOL_DIGIT_SIZE[] = {
         1, 1
     };
 

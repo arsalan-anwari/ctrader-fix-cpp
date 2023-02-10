@@ -1,11 +1,11 @@
 #pragma once
 
-#include <stdint.h>
-
+#include "types/numbers.hpp"
 #include "concepts.hpp"
 
 namespace ctrader::tools::random{
 
+    using namespace ctrader::types::numbers;
     using namespace ctrader::tools::concepts;
 
     namespace internal {
@@ -17,8 +17,8 @@ namespace ctrader::tools::random{
             "Aa"; // these are used to padd message, so modolu 64 does not return empty charachter if i=63
 
 
-        consteval uint64_t new_seed() {
-            uint64_t shifted = 0;
+        consteval u64 new_seed() {
+            u64 shifted = 0;
 
             for( const auto c : __TIME__ ){
                 shifted <<= 8;
@@ -30,15 +30,15 @@ namespace ctrader::tools::random{
 
         // first numbers generated as average of outliers in set of random binomial distribution
         // second number is bitshift of compilation time --> this way each sequential compilation will also generated partially new keys. 
-        uint64_t seeds[2] = {346786427839U, new_seed()};
+        u64 seeds[2] = {346786427839U, new_seed()};
 
     }
 
     // Based on XorShift128+ algorithm
      inline __attribute__((always_inline))
-    uint64_t rand(){
-        uint64_t x = internal::seeds[0];
-        uint64_t const y = internal::seeds[1];
+    u64 rand(){
+        u64 x = internal::seeds[0];
+        u64 const y = internal::seeds[1];
         internal::seeds[0] = y;
         x ^= x << 23; // a
         internal::seeds[1] = x ^ y ^ (x >> 17) ^ (y >> 26); // b, c
@@ -47,9 +47,9 @@ namespace ctrader::tools::random{
 
     // Modulo of base 2 is much faster than generic modulo of other numbers. 
     // No loop needed only sigle bit operation
-    template<uint8_t N> requires is_power_of_2<N>
+    template<u8 N> requires is_power_of_2<N>
      inline __attribute__((always_inline))
-    uint8_t rand_n(){
+    u8 rand_n(){
         return (rand() & (N - 1));
     };
 

@@ -1,12 +1,13 @@
 #pragma once
 
-#include <stdint.h>
+#include "types/numbers.hpp"
 
 namespace ctrader::data::field_id{
+	using namespace ctrader::types::numbers;
 
-	constexpr uint16_t KeyNum = 1024;
+	constexpr u16 KeyNum = 1024;
 
-	constexpr uint8_t KeySize = 6;
+	constexpr u8 KeySize = 6;
 
 	const char* const Keys[] = {
 		"3xe5TU",

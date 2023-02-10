@@ -22,11 +22,11 @@ namespace ctrader::tools::memory {
         }
     };
 
-    template<std::size_t SIZE, uint8_t REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
+    template<std::size_t SIZE, u8 REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
      inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void memcpy_32u(char* dst, const char* src){
 
-        for(uint8_t i=0; i < REM; i++){ dst[i] = src[i]; }
+        for(u8 i=0; i < REM; i++){ dst[i] = src[i]; }
 
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
             _mm256_store_si256(

@@ -2,21 +2,21 @@
 
 #include <chrono>
 #include <concepts>
-#include <stdint.h>
-#include <cstddef>
 
 namespace ctrader::tools::concepts {
 
-    template<std::size_t SIZE>
+    using namespace ctrader::types::numbers;
+
+    template<auto SIZE>
     concept is_32byte_alignable = SIZE % 32 == 0;
 
-    template<std::size_t SIZE, std::size_t MIN>
+    template<auto SIZE, auto MIN>
     concept is_minimum_size = SIZE >= MIN;
 
-    template<std::size_t SIZE, std::size_t MAX>
+    template<auto SIZE, auto MAX>
     concept is_smaller_than = SIZE < MAX;
 
-    template<std::size_t VAL>
+    template<auto VAL>
     concept is_power_of_2 = (VAL > 0) && !(VAL & (VAL - 1));
 
     template<typename T>
