@@ -14,9 +14,10 @@ namespace ctrader::tools::numbers {
     using namespace ctrader::types::numbers;
 
     namespace op {
-        i32 let(i32 a, i32 b){ return ((((b + (~a + 1)) >> 31) & 1) ^ 1); };
-        i32 get(i32 a, i32 b){ return (((b + (~a + 1)) >> 31) & 1); };
-        i32 ne(i32 a, i32 b){ return !!(a ^ b); }
+        inline __attribute__((always_inline)) i32 lte(i32 a, i32 b){ return ((((b + (~a + 1)) >> 31) & 1) ^ 1); };
+        inline __attribute__((always_inline)) i32 gte(i32 a, i32 b){ return (((b + (~a + 1)) >> 31) & 1); };
+        inline __attribute__((always_inline)) i32 negate(i32 x){ return ((x >> 31) | ((~x + 1) >> 31)) + 1; }
+        inline __attribute__((always_inline)) i32 ne(i32 a, i32 b){ return negate(a ^ b) ^ 1; }
     }
 
     template<typename VAL, typename RET = VAL>
@@ -26,13 +27,12 @@ namespace ctrader::tools::numbers {
     }
 
     inline __attribute__((always_inline)) 
-    void overflow_correction(const i64 val, i64& base, u32& digit_size){
+    overflow_info_t overflow_correction(const i64 val, const i64 base, const u32 digit_size){
         const i64 new_base[3] = { (base * 10U), (base * 10U), base }; 
         const u32 new_digit_size[3] = { (digit_size + 1U), (digit_size + 1U), digit_size };
         i64 res = base - val;
         i64 state = ( (res > 0) - (res < 0) ) + 1;
-        base = new_base[ state ];
-        digit_size = new_digit_size [ state ];
+        return { new_base[ state ], new_digit_size [ state ]};
     }
 
     template<typename T> requires std::integral<T>
@@ -91,7 +91,7 @@ namespace ctrader::tools::numbers {
         T msg_digit_size = 0;
         for(T i = MAX; i > 0; i--){
             i8 msg_val = (buff[i-1] - '0');
-            u8 msg_val_state = (op::get(msg_val, 0) & op::let(msg_val, 9));
+            u8 msg_val_state = (op::gte(msg_val, 0) & op::lte(msg_val, 9));
 
             total_msg_size += ( msg_val * msg_val_state) * msg_size_multiplier;
             msg_digit_size += msg_val_state;

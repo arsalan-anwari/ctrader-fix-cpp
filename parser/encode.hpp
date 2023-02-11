@@ -84,14 +84,22 @@ struct Encoder {
     inline __attribute__((always_inline))
     void encode_message(FIELD_TYPE... fields) { 
         internal::prepare_message<M, C>( msg_seq_num, fields... ); 
+        advance_seq_num();
+    };
+
+    inline __attribute__((always_inline))
+    void advance_seq_num() { 
         msg_seq_num++;
-        numbers::overflow_correction(
+        
+        auto res = numbers::overflow_correction(
             msg_seq_num,
             msg_seq_num_base,
             msg_seq_num_digit_size
         );
-    };
 
+        msg_seq_num_base = res.base;
+        msg_seq_num_digit_size = res.digit_size;
+    };
 
     inline __attribute__((always_inline))
     void reset_seq_num() { msg_seq_num = 1; msg_seq_num_base = 10; msg_seq_num_digit_size = 1; };

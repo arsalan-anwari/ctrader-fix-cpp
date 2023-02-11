@@ -66,16 +66,13 @@ namespace algorithms {
 
     namespace market_orders{
 
-        // |279=0|269=1|278=2291668712|55=1|270=1.08754|271=3000000
+        // // |279=0|269=1|278=2291668712|55=1|270=1.08754|271=3000000
         // inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-        // void create_insert_order_inc(const char* data, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 start, u16 end){
+        // void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 start, u16 end){
         //     entry.UpdateAction = UPDATE_ACTION::NEW;
-        //     entry.EntryType = ENTRY_TYPE_LOOKUP[ static_cast<u8>( data[start+11] ) ];
-        //     entry.EntryId = numbers::to_num<i64, 10>(data+start+17);
-        //     std::bitset<20> symbol_pos;
-        //     for (u8 i=0; i < 20; i++){
-                 
-        //     }
+        //     entry.EntryType = ENTRY_TYPE_LOOKUP[ chunk[11] - '0' ];
+        //     entry.EntryId = numbers::to_num<i64, 10>(chunk+17);
+ 
 
         // }
     }
@@ -104,12 +101,12 @@ namespace algorithms {
         // Handle unrolled vectorized market_indices calculations
         for(u32 i=0; i<25; i++){
             // Offset calculations
-            u32 is_vectorizable = numbers::op::let( (absolute_offset + 32), size);
+            u32 is_vectorizable = numbers::op::lte( (absolute_offset + 32), size);
 
             u32 chunk_start = absolute_offset * is_vectorizable;
             
             u32 search_idx = internal::find_pattern_32a(data+chunk_start, "|279");
-            u32 idx_found = numbers::op::get( search_idx, 0);
+            u32 idx_found = numbers::op::gte( search_idx, 0);
 
             u32 relative_offset = ((search_idx - 1U) * (idx_found & is_vectorizable));
             u32 message_type_idx = ((chunk_start * idx_found) + relative_offset) * is_vectorizable;
@@ -136,7 +133,7 @@ namespace algorithms {
         u32 padding_size = 32U - end_size;
 
         u32 search_idx = internal::find_pattern_32a(data+(absolute_offset-padding_size), "|279");
-        u32 idx_found = numbers::op::get( search_idx, 0);
+        u32 idx_found = numbers::op::gte( search_idx, 0);
   
         u32 relative_offset = (absolute_offset + ((search_idx - 1U) - padding_size)) * idx_found;
         u32 new_message_type = ( data[relative_offset + 5] - '0' ) + (idx_found ^ 1U);
