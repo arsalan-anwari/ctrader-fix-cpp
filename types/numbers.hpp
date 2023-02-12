@@ -17,15 +17,5 @@ namespace ctrader::types::numbers {
     using i64 = int64_t;
     using i128 = __int128_t;
 
-    template <typename T> requires std::integral<T>
-    struct number_info_t {
-        T value;
-        T digit_count;
-    };
-
-    struct overflow_info_t {
-        const i64 base;
-        const u32 digit_size;
-    };
 
 } // ctrader::types::numbers

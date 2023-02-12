@@ -18,7 +18,7 @@ namespace ctrader::parser::encode {
 using namespace ctrader::types::encode;
 using namespace ctrader::tools;
 
-namespace internal {
+namespace {
     using namespace ctrader::types::symbol;
     using namespace ctrader::data;
     using namespace ctrader::settings;
@@ -43,7 +43,7 @@ namespace internal {
 
 
     template<ENCODE_TYPE M, CONN_TYPE C, typename... FIELD_TYPE> 
-     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+    static inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void prepare_message(const i64 msg_seq_num, FIELD_TYPE... fields){
         static_assert( 
             (M == ENCODE_TYPE::MD_REQ_SUB_DEPTH) && (C != CONN_TYPE::TRADE),
@@ -77,13 +77,13 @@ namespace internal {
 
 } // internal
 
-template<CONN_TYPE C>
+template <CONN_TYPE C>
 struct Encoder {
    
     template<ENCODE_TYPE M, typename... FIELD_TYPE> 
     inline __attribute__((always_inline))
     void encode_message(FIELD_TYPE... fields) { 
-        internal::prepare_message<M, C>( msg_seq_num, fields... ); 
+        prepare_message<M, C>( msg_seq_num, fields... ); 
         advance_seq_num();
     };
 
@@ -91,14 +91,11 @@ struct Encoder {
     void advance_seq_num() { 
         msg_seq_num++;
         
-        auto res = numbers::overflow_correction(
-            msg_seq_num,
-            msg_seq_num_base,
-            msg_seq_num_digit_size
-        );
+        i64 res = msg_seq_num_base - msg_seq_num;
+        i64 state = numbers::op::gte(res, 0);
 
-        msg_seq_num_base = res.base;
-        msg_seq_num_digit_size = res.digit_size;
+        msg_seq_num_base *= (1 + (9 * state));
+        msg_seq_num_digit_size += state;
     };
 
     inline __attribute__((always_inline))
@@ -119,5 +116,7 @@ private:
         u32 msg_seq_num_digit_size = 1;
 
 };
+
+
 
 }

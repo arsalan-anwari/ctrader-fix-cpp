@@ -26,15 +26,6 @@ namespace ctrader::tools::numbers {
             return static_cast<RET>(std::floor( std::log10( val ) )) + 1;
     }
 
-    inline __attribute__((always_inline)) 
-    overflow_info_t overflow_correction(const i64 val, const i64 base, const u32 digit_size){
-        const i64 new_base[3] = { (base * 10U), (base * 10U), base }; 
-        const u32 new_digit_size[3] = { (digit_size + 1U), (digit_size + 1U), digit_size };
-        i64 res = base - val;
-        i64 state = ( (res > 0) - (res < 0) ) + 1;
-        return { new_base[ state ], new_digit_size [ state ]};
-    }
-
     template<typename T> requires std::integral<T>
     inline __attribute__((always_inline))
     constexpr void to_string(char*, char* end, T x) {
@@ -44,27 +35,61 @@ namespace ctrader::tools::numbers {
         } while(x != 0);
     }
 
-    template<typename T, T SIZE> 
-    requires std::integral<T> && is_minimum_size<SIZE, 1>
+    template<typename T, T N>
+    requires std::integral<T> && is_minimum_size<N, 1>
+    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+    T to_num_estimate(const char* buff) {
+        T msg_size_multiplier = 1;
+        T total_msg_size = 0;
+
+        for(T i = N; i > 0; i--){
+            i8 msg_val = (buff[i-1] - '0');
+            u8 msg_val_state = (op::gte(msg_val, 0) & op::lte(msg_val, 9));
+
+            total_msg_size += ( msg_val * msg_val_state) * msg_size_multiplier;
+            msg_size_multiplier *= (1 + (9 * msg_val_state));
+        }
+
+        return total_msg_size;
+    }
+
+    template<> u32 to_num_estimate<u32, 4>(const char* buff){
+        u32 first_val = ((buff[0] - '0') * 1000U);
+        u32 last_val = buff[3] - '0';
+        u32 last_val_state = op::gte(last_val, 0) & op::lte(last_val, 9);
+        return ( 
+            first_val +
+            ((buff[1] - '0') * 100U) +
+            ((buff[2] - '0') * 10U) +
+            (last_val * last_val_state)
+        ) - first_val * (last_val_state ^ 1);
+    }
+
+    template<typename T, T N>
+    requires std::integral<T> && is_minimum_size<N, 1>
+    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
+    T to_digit_size(const char* buff) {
+        T digit_size = 0;
+
+        for(T i = 0; i < N; i++){
+            i32 msg_val = (buff[i] - '0');
+            u32 msg_val_state = (op::gte(msg_val, 0) & op::lte(msg_val, 9));
+
+            digit_size += msg_val_state;
+        }
+
+        return digit_size;
+    }
+
+    template<typename T, T N>
+    requires std::integral<T> && is_minimum_size<N, 1>
     inline __attribute__((always_inline))
     T to_num(const char* buff);
 
-    template<> u8 to_num<u8, 1>(const char* buff){
-        return (buff[0] - '0');
-    }
-
-    template<> u8 to_num<u8, 2>(const char* buff){
-        return static_cast<u8>( 
+    template<> u32 to_num<u32, 2>(const char* buff){
+        return static_cast<u32>( 
             ((buff[0] - '0') * 10U) +
             ((buff[1] - '0'))
-        );
-    }
-
-    template<> u16 to_num<u16, 3>(const char* buff){
-        return static_cast<u16>( 
-            ((buff[0] - '0') * 100U) +
-            ((buff[1] - '0') * 10U) +
-            ((buff[2] - '0'))
         );
     }
 
@@ -82,25 +107,6 @@ namespace ctrader::tools::numbers {
             ((buff[9] - '0')) 
         );
     }
-
-    template<typename T, T MAX> requires std::integral<T>
-    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    number_info_t<T> to_num_estimate(const char* buff) {
-        T msg_size_multiplier = 1;
-        T total_msg_size = 0;
-        T msg_digit_size = 0;
-        for(T i = MAX; i > 0; i--){
-            i8 msg_val = (buff[i-1] - '0');
-            u8 msg_val_state = (op::gte(msg_val, 0) & op::lte(msg_val, 9));
-
-            total_msg_size += ( msg_val * msg_val_state) * msg_size_multiplier;
-            msg_digit_size += msg_val_state;
-            msg_size_multiplier *= (1 + (9 * msg_val_state));
-        }
-
-        return {total_msg_size, msg_digit_size};
-    }
-
 
     template<std::size_t N, typename T> requires std::unsigned_integral<T>
     consteval simple_buffer_t<char, N> to_simple_buffer(T val){
