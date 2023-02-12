@@ -200,6 +200,8 @@ start = std::chrono::steady_clock::now();
     market_insert_index_filter.data_len = market_insert_count;
     market_remove_index_filter.data_len = market_remove_count;
 
+    
+
 end = std::chrono::steady_clock::now();
 total_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     return total_ns;

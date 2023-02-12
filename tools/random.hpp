@@ -8,7 +8,7 @@ namespace ctrader::tools::random{
     using namespace ctrader::types::numbers;
     using namespace ctrader::tools::concepts;
 
-    namespace internal {
+    namespace {
 
         const char anumLookup[] = 
             "0123456789"
@@ -37,12 +37,12 @@ namespace ctrader::tools::random{
     // Based on XorShift128+ algorithm
      inline __attribute__((always_inline))
     u64 rand(){
-        u64 x = internal::seeds[0];
-        u64 const y = internal::seeds[1];
-        internal::seeds[0] = y;
+        u64 x = seeds[0];
+        u64 const y = seeds[1];
+        seeds[0] = y;
         x ^= x << 23; // a
-        internal::seeds[1] = x ^ y ^ (x >> 17) ^ (y >> 26); // b, c
-        return internal::seeds[1] + y;
+        seeds[1] = x ^ y ^ (x >> 17) ^ (y >> 26); // b, c
+        return seeds[1] + y;
     };
 
     // Modulo of base 2 is much faster than generic modulo of other numbers. 
@@ -56,7 +56,7 @@ namespace ctrader::tools::random{
 
      inline __attribute__((always_inline))
     char rand_anum(){
-        return internal::anumLookup[rand_n<64>()];
+        return anumLookup[rand_n<64>()];
     };
 
 }

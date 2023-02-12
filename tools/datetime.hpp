@@ -7,7 +7,6 @@
 
 namespace ctrader::tools::datetime {
 
-
     inline __attribute__((always_inline))
     void current_timestamp_from_offset( char* out ){
         using namespace std::chrono;

@@ -91,11 +91,22 @@ struct Encoder {
     void advance_seq_num() { 
         msg_seq_num++;
         
-        i64 res = msg_seq_num_base - msg_seq_num;
-        i64 state = numbers::op::gte(res, 0);
+        i32 res = msg_seq_num - msg_seq_num_base;
+        i32 is_overflow = numbers::op::gte(res, -1);
 
-        msg_seq_num_base *= (1 + (9 * state));
-        msg_seq_num_digit_size += state;
+        msg_seq_num_base *= (1 + (9 * is_overflow));
+        msg_seq_num_digit_size += is_overflow;
+    };
+
+    inline __attribute__((always_inline))
+    void reduce_seq_num() { 
+        msg_seq_num--;
+        
+        i32 res = msg_seq_num - (msg_seq_num_base / 10);
+        i32 is_underflow = numbers::op::lte(res, -1);
+
+        msg_seq_num_base /= (1 + (9 * is_underflow));
+        msg_seq_num_digit_size -= is_underflow;
     };
 
     inline __attribute__((always_inline))
