@@ -1,6 +1,6 @@
 #pragma once
 
-#include <chrono>
+#include <stdio.h>
 #include <string>
 
 #include "types/decode.hpp"
@@ -42,19 +42,7 @@ namespace {
 
     };
 
-    inline __attribute__((always_inline))
-    u32 get_message_offset(const char* data, const u32 header_size){
 
-        const u32 digit_size = numbers::to_digit_size<u32, 4>(data+12);
-
-        return (
-            12U + // 8=FIX.4.4|9=
-            digit_size + // {0:1-4}
-            header_size //|35=X| ... |56= ...
-        );
-
-    };
-    
     // // |279=0|269=1|278=2291668712|55=1|270=1.08754|271=3000000
     // inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     // void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 start, u16 end){
@@ -79,34 +67,25 @@ namespace {
 
 struct Decoder{
 
+    inline __attribute__((always_inline))
+    void decode(const char* data, const u32 msg_seq_num_digit_size);
+
+private:
     template<DECODE_TYPE T>
     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    i64 decode(const char* data, const u8 msg_seq_num_digit_size);
+    void decode_algorithm(const char* data, const u32 data_size, const u32 num_entries);
 
 public:
     message_container<DATA_TYPE::MARKET_DATA> market_data;
-    market_index_container market_indices;
     market_index_filter market_insert_index_filter;
     market_index_filter market_remove_index_filter;
+    market_index_container market_indices;
+
 };
 
+template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(const char* data, const u32 data_size, const u32 num_entries){
 
-template<> i64 Decoder::decode<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(const char* data, const u8 msg_seq_num_digit_size){
-
-std::chrono::steady_clock::time_point start, end;
-i64 total_ns = 0;
-
-start = std::chrono::steady_clock::now();
-
-    // Define lookup table 
     static const u32 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
-
-    // Calculate message sizes and offset
-    u32 header_size = get_message_header_size(msg_seq_num_digit_size);
-    u32 data_size = get_message_size(data, header_size);
-    u32 offset = get_message_offset(data, header_size);
-    const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);
-    data = data + offset + 7;
 
     // Precalculate first entry (always starts at i=0)
     u32 message_type = ( data[5] - '0' );
@@ -115,31 +94,23 @@ start = std::chrono::steady_clock::now();
     u32 old_message_type = message_type;
     u32 mi_idx = 1;
 
-end = std::chrono::steady_clock::now();
-total_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-
     // Handle unrolled vectorized market_indices calculations
-    for(u32 i=0; i<num_entries; i++){
+    for(u32 i=0; i<25; i++){
         // Offset calculations
-start = std::chrono::steady_clock::now();
-        u32 is_vectorizable = numbers::op::lte( (absolute_offset + 32), data_size);
+        i32 is_vectorizable = numbers::op::lte( (absolute_offset + 32), data_size);
+        u32 is_vectorizable_mask = 0 - is_vectorizable;
 
-        u32 chunk_start = absolute_offset * is_vectorizable;
-end = std::chrono::steady_clock::now();
-total_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-        
+        u32 chunk_start = absolute_offset & is_vectorizable_mask;
         u32 search_idx = find_pattern_32a(data+chunk_start, "|279");
 
-start = std::chrono::steady_clock::now();
-        u32 is_found = numbers::op::gte(search_idx, 0);
+        i32 is_found = numbers::op::gte(search_idx, 0);
+        u32 is_found_and_vectorizable_mask = 0 - (is_found & is_vectorizable);
 
-        u32 relative_offset = ((search_idx - 1U) * (is_found & is_vectorizable));
-        u32 message_type_idx = ((chunk_start * is_found) + relative_offset) * is_vectorizable;
-        u32 new_message_type = ((( data[message_type_idx + 5U] - '0' ) + ( (is_found ^ 1) | (is_vectorizable ^ 1) )));
-
-        u32 skip_size = (base_skip_size_lookup[new_message_type] + relative_offset) * is_vectorizable;
+        u32 relative_offset = (search_idx - 1U) & is_found_and_vectorizable_mask;
+        u32 new_message_type = ((( data[chunk_start  + relative_offset + 5U] - '0' ) + ( (is_found ^ 1) | (is_vectorizable ^ 1) )));
 
         u32 insert_value = absolute_offset + relative_offset;
+        u32 skip_size = (base_skip_size_lookup[new_message_type] + relative_offset) & is_vectorizable_mask;
         absolute_offset += skip_size;
 
         // Insert calculations
@@ -151,24 +122,19 @@ start = std::chrono::steady_clock::now();
 
         old_message_type = new_message_type;
         mi_idx += (is_found & is_vectorizable);
-end = std::chrono::steady_clock::now();
-total_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     }
 
-start = std::chrono::steady_clock::now();
     // Handle last part of market_indices
     u32 end_size = data_size - absolute_offset;
     u32 padding_size = 32U - end_size;
-end = std::chrono::steady_clock::now();
-total_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
     u32 search_idx = find_pattern_32a(data+(absolute_offset-padding_size), "|279");
 
-start = std::chrono::steady_clock::now();
-    u32 idx_found = numbers::op::gte( search_idx, 0);
+    i32 is_found = numbers::op::gte( search_idx, 0);
+    u32 is_found_mask = 0 - is_found;
 
-    u32 relative_offset = (absolute_offset + ((search_idx - 1U) - padding_size)) * idx_found;
-    u32 new_message_type = ( data[relative_offset + 5] - '0' ) + (idx_found ^ 1U);
+    u32 relative_offset = (absolute_offset + ((search_idx - 1U) - padding_size)) & is_found_mask;
+    u32 new_message_type = ( data[relative_offset + 5] - '0' ) + (is_found ^ 1U);
     
     u32 new_mi_idx = mi_idx;
     u32 old_mi_idx = (new_mi_idx-1);
@@ -185,27 +151,43 @@ start = std::chrono::steady_clock::now();
         i32 begin_remove = market_indices[2][i].begin;
         i32 end_remove = market_indices[2][i].end;
 
-        u32 result_state_insert = numbers::op::ne(begin_insert, end_insert); 
-        u32 result_state_remove = numbers::op::ne(begin_remove, end_remove); 
+        i32 result_state_insert = numbers::op::ne(begin_insert, end_insert); 
+        i32 result_state_remove = numbers::op::ne(begin_remove, end_remove); 
+        u32 result_state_insert_mask = 0 - result_state_insert;
+        u32 result_state_remove_mask = 0 - result_state_remove;
 
         market_insert_idx += result_state_insert;
         market_insert_count += result_state_insert;
         market_remove_idx += result_state_remove;
         market_remove_count += result_state_remove;
 
-        market_insert_index_filter.data[ market_insert_idx * result_state_insert ] = i;
-        market_remove_index_filter.data[ market_remove_idx * result_state_remove ] = i;
+        market_insert_index_filter.data[ market_insert_idx & result_state_insert_mask ] = i;
+        market_remove_index_filter.data[ market_remove_idx & result_state_remove_mask ] = i;
     }
 
     market_insert_index_filter.data_len = market_insert_count;
     market_remove_index_filter.data_len = market_remove_count;
 
-    
-
-end = std::chrono::steady_clock::now();
-total_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-    return total_ns;
 };
+
+#define __DECODE_CASE(TYPE) \
+    const u32 header_size = get_message_header_size(msg_seq_num_digit_size);\
+    const u32 data_size = get_message_size(data, header_size);\
+    const u32 offset = ( 12U + msg_size_digit_size + header_size );\
+    const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);\
+    decode_algorithm<TYPE>(data + offset + 7, data_size, num_entries);\
+    break;\
+
+void Decoder::decode(const char* data, const u32 msg_seq_num_digit_size){
+    const u32 msg_size_digit_size = numbers::to_digit_size<u32, 4>(data+12);
+    const char msg_type = data[12 + msg_size_digit_size + 4];
+
+    switch(msg_type){
+        case 'X': { __DECODE_CASE(DECODE_TYPE::MARKET_DATA_INCREMENTAL) }
+    }
+
+}
+
 
 } // ctrader::parser
 
