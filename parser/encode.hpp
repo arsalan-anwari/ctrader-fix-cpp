@@ -23,6 +23,13 @@ namespace {
     using namespace ctrader::data;
     using namespace ctrader::settings;
 
+    // constexpr i64 const base_lookup[] = { 
+    //         1, 10, 100, 1'000, 10'000, 100'000, 1'000'000, 10'000'000, 
+    //         1'000'000'000, 10'000'000'000, 100'000'000'000, 1'000'000'000'000,
+    //         10'000'000'000'000, 100'000'000'000'000, 1'000'000'000'000'000, 
+    //         10'000'000'000'000'000, 100'000'000'000'000'000, 1'000'000'000'000'000'000
+    // };
+
     #define __PREPARE_HEADER(MSG_DATA) \
     numbers::to_string( message_data::MSG_DATA.header.field.MsgSeqNum+4, message_data::MSG_DATA.header.field.MsgSeqNum+MsgSeqNumDigitSize+4, msg_seq_num ); \
     datetime::current_timestamp_from_offset( message_data::MSG_DATA.header.field.timestamp_32a ); \
@@ -93,8 +100,9 @@ struct Encoder {
         
         i32 res = msg_seq_num - msg_seq_num_base;
         i32 is_overflow = numbers::op::gte(res, -1);
+        u32 is_overflow_mask = 0 - is_overflow;
 
-        msg_seq_num_base *= (1 + (9 * is_overflow));
+        msg_seq_num_base = (msg_seq_num_base << (3 & is_overflow_mask) ) + ( (msg_seq_num_base << 1) & is_overflow_mask );
         msg_seq_num_digit_size += is_overflow;
     };
 
@@ -102,11 +110,11 @@ struct Encoder {
     void reduce_seq_num() { 
         msg_seq_num--;
         
-        i32 res = msg_seq_num - (msg_seq_num_base / 10);
+        i32 res = msg_seq_num - base_lookup[msg_seq_num_digit_size - 1];
         i32 is_underflow = numbers::op::lte(res, -1);
 
-        msg_seq_num_base /= (1 + (9 * is_underflow));
         msg_seq_num_digit_size -= is_underflow;
+        msg_seq_num_base = base_lookup[msg_seq_num_digit_size];
     };
 
     inline __attribute__((always_inline))
@@ -119,12 +127,19 @@ struct Encoder {
     i64 get_seq_num_base() { return msg_seq_num_base; };
 
     inline __attribute__((always_inline))
-    u8 get_seq_num_digit_size() { return msg_seq_num_digit_size; };
+    u32 get_seq_num_digit_size() { return msg_seq_num_digit_size; };
 
 private:
         i64 msg_seq_num = 1;
         i64 msg_seq_num_base = 10;
         u32 msg_seq_num_digit_size = 1;
+
+        constexpr static i64 base_lookup[18] = { 
+            1, 10, 100, 1'000, 10'000, 100'000, 1'000'000, 10'000'000, 
+            1'000'000'000, 10'000'000'000, 100'000'000'000, 1'000'000'000'000,
+            10'000'000'000'000, 100'000'000'000'000, 1'000'000'000'000'000, 
+            10'000'000'000'000'000, 100'000'000'000'000'000, 1'000'000'000'000'000'000
+        };
 
 };
 

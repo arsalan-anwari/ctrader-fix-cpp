@@ -43,11 +43,12 @@ namespace ctrader::tools::numbers {
         T total_msg_size = 0;
 
         for(T i = N; i > 0; i--){
-            i8 msg_val = (buff[i-1] - '0');
-            u8 msg_val_state = (op::gte(msg_val, 0) & op::lte(msg_val, 9));
+            i32 msg_val = (buff[i-1] - '0');
+            i32 msg_val_state = (op::gte(msg_val, 0) & op::lte(msg_val, 9));
+            u32 msg_val_state_mask = 0 - msg_val_state;
 
-            total_msg_size += ( msg_val * msg_val_state) * msg_size_multiplier;
-            msg_size_multiplier *= (1 + (9 * msg_val_state));
+            total_msg_size += msg_val * (msg_size_multiplier & msg_val_state_mask);
+            msg_size_multiplier = (msg_size_multiplier << (3 & msg_val_state_mask) ) + ( msg_size_multiplier << (1 & msg_val_state_mask) );
         }
 
         return total_msg_size;

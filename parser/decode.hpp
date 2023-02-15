@@ -68,7 +68,18 @@ namespace {
 struct Decoder{
 
     inline __attribute__((always_inline))
-    void decode(const char* data, const u32 msg_seq_num_digit_size);
+    void decode_any(const char* data, const u32 msg_seq_num_digit_size);
+
+     template<DECODE_TYPE T>
+     inline __attribute__((always_inline))
+     void decode(const char* data, const u32 msg_seq_num_digit_size){
+        const u32 msg_size_digit_size = numbers::to_digit_size<u32, 4>(data+12);
+        const u32 header_size = get_message_header_size(msg_seq_num_digit_size);
+        const u32 data_size = get_message_size(data, header_size);
+        const u32 offset = ( 12U + msg_size_digit_size + header_size );
+        const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);
+        decode_algorithm<T>(data + offset + 7, data_size, num_entries);
+     }    
 
 private:
     template<DECODE_TYPE T>
@@ -101,7 +112,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
         u32 is_vectorizable_mask = 0 - is_vectorizable;
 
         u32 chunk_start = absolute_offset & is_vectorizable_mask;
-        u32 search_idx = find_pattern_32a(data+chunk_start, "|279");
+        u32 search_idx = find_pattern_32a(data+chunk_start, __DECODE_GEN_PATTERN(279));
 
         i32 is_found = numbers::op::gte(search_idx, 0);
         u32 is_found_and_vectorizable_mask = 0 - (is_found & is_vectorizable);
@@ -128,7 +139,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     u32 end_size = data_size - absolute_offset;
     u32 padding_size = 32U - end_size;
 
-    u32 search_idx = find_pattern_32a(data+(absolute_offset-padding_size), "|279");
+    u32 search_idx = find_pattern_32a(data+(absolute_offset-padding_size), __DECODE_GEN_PATTERN(279));
 
     i32 is_found = numbers::op::gte( search_idx, 0);
     u32 is_found_mask = 0 - is_found;
@@ -178,7 +189,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     decode_algorithm<TYPE>(data + offset + 7, data_size, num_entries);\
     break;\
 
-void Decoder::decode(const char* data, const u32 msg_seq_num_digit_size){
+void Decoder::decode_any(const char* data, const u32 msg_seq_num_digit_size){
     const u32 msg_size_digit_size = numbers::to_digit_size<u32, 4>(data+12);
     const char msg_type = data[12 + msg_size_digit_size + 4];
 
