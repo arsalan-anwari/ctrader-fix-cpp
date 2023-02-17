@@ -34,7 +34,7 @@ namespace ctrader::parser {
 
         // When the delimiter is of base 2 (256 == 2^8) you can use bitoperations instead of modulo. 
         // If your compiler is smart enough it will use this method anyway, but just to be sure, its better to just hardcode this logic. 
-        return ( _mm256_extract_epi32(accum, 0) + _mm256_extract_epi32(accum, 4) + remainder ) & (256 -1);
+        return ( _mm256_extract_epi32(accum, 0) + _mm256_extract_epi32(accum, 4) + remainder ) & (256 - 1);
     }
 
 

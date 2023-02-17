@@ -53,13 +53,37 @@ namespace {
 
     // }
     
+    // This function is just a placeholder and will be replaced with a vecotized implementation
+    // inline __attribute__((always_inline))
+    // u32 find_pattern_32a(const char* text, const char* pattern){
+    //     std::string _text(text, 32);
+    //     std::string _pattern(pattern, 4);
+    //     auto pos = _text.find(_pattern);
+    //     if (pos == std::string::npos){ return 0U; }
+    //     return pos + 1;
+    // };
+
+    // Based on EPSMA-1 algorithm but in this version you only need to calculate SAD values 1-2 times vs 'len_of_pattern' times
+    // - If you want to increase the probability that patterns are detected correctly you can perform an additional '_mm256_mpsadbw_epu8' 
+    //   offset by len_of_pattern or offset by 8. This second seek is not nessecary however. 
+    //      * This is because in the future i will port my probability distribution function which will calculate correct skip_sizes (see 'decode_algorithm('))
+    //        based on previously computed indices. This will ensure that the pattern will majority of the time be within the first 16 - 'len_of_pattern' when searching for it
+    //        meaning only a single seek is needed not 'len_of_pattern' seeks. 
+    // - This function will return the bitmask, NOT relative index. 
+    //      * I might change this in the future depending on which implementation of the probability distribution function
     inline __attribute__((always_inline))
     u32 find_pattern_32a(const char* text, const char* pattern){
-        std::string _text(text, 32);
-        std::string _pattern(pattern, 4);
-        auto pos = _text.find(_pattern);
-        if (pos == std::string::npos){ return 0U; }
-        return pos + 1;
+        __m256i a = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
+        __m256i b = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
+        const __m256i z = _mm256_setzero_si256();
+
+        __m256i h = _mm256_mpsadbw_epu8(a, b, 0);
+
+        h = _mm256_cmpeq_epi16(h, z);
+        
+        u32 r = _mm256_movemask_epi8(h);
+
+        return r;
     };
 
 }

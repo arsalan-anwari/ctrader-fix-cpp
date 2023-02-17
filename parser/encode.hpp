@@ -54,7 +54,7 @@ namespace {
     void prepare_message(const i64 msg_seq_num, FIELD_TYPE... fields){
         static_assert( 
             (M == ENCODE_TYPE::MD_REQ_SUB_DEPTH) && (C != CONN_TYPE::TRADE),
-            "Message type: MD_REQ_SUB_DEPTH Cannot be used with Connection type: TRADE!"  
+            "ENCODE_TYPE:MD_REQ_SUB_DEPTH Cannot be used with CONN_TYPE::TRADE! Use CONN_TYPE::QUOTE instead..."  
         );
     }
 
@@ -108,7 +108,15 @@ struct Encoder {
 
     inline __attribute__((always_inline))
     void reduce_seq_num() { 
-        msg_seq_num--;
+        static const i64 base_lookup[18] = { 
+            1, 10, 100, 1'000, 10'000, 100'000, 1'000'000, 10'000'000, 
+            1'000'000'000, 10'000'000'000, 100'000'000'000, 1'000'000'000'000,
+            10'000'000'000'000, 100'000'000'000'000, 1'000'000'000'000'000, 
+            10'000'000'000'000'000, 100'000'000'000'000'000, 1'000'000'000'000'000'000
+        };
+
+        i32 is_decrementable = numbers::op::gte(msg_seq_num, 1);
+        msg_seq_num -= is_decrementable;
         
         i32 res = msg_seq_num - base_lookup[msg_seq_num_digit_size - 1];
         i32 is_underflow = numbers::op::lte(res, -1);
@@ -133,13 +141,6 @@ private:
         i64 msg_seq_num = 1;
         i64 msg_seq_num_base = 10;
         u32 msg_seq_num_digit_size = 1;
-
-        constexpr static i64 base_lookup[18] = { 
-            1, 10, 100, 1'000, 10'000, 100'000, 1'000'000, 10'000'000, 
-            1'000'000'000, 10'000'000'000, 100'000'000'000, 1'000'000'000'000,
-            10'000'000'000'000, 100'000'000'000'000, 1'000'000'000'000'000, 
-            10'000'000'000'000'000, 100'000'000'000'000'000, 1'000'000'000'000'000'000
-        };
 
 };
 
