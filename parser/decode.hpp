@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdio.h>
-#include <string>
+#include <x86intrin.h>
 
 #include "types/decode.hpp"
 #include "types/symbol.hpp"
@@ -53,7 +52,7 @@ namespace {
 
     // }
     
-    // This function is just a placeholder and will be replaced with a vecotized implementation
+    // This function is just a placeholder used for debugging and will be replaced with a vecotized implementation later
     // inline __attribute__((always_inline))
     // u32 find_pattern_32a(const char* text, const char* pattern){
     //     std::string _text(text, 32);
@@ -63,27 +62,28 @@ namespace {
     //     return pos + 1;
     // };
 
-    // Based on EPSMA-1 algorithm but in this version you only need to calculate SAD values 1-2 times vs 'len_of_pattern' times
-    // - If you want to increase the probability that patterns are detected correctly you can perform an additional '_mm256_mpsadbw_epu8' 
-    //   offset by len_of_pattern or offset by 8. This second seek is not nessecary however. 
+    // Based on EPSMA-1 algorithm but in this version you only need to calculate SAD values 1-2 times vs `len_of_pattern` times
+    // - If you want to increase the probability that patterns are detected correctly you can perform an additional `_mm256_mpsadbw_epu8()` 
+    //   offset by `len_of_pattern` and substract `len_of_pattern` from the found index. This second seek is not nessecary however as index are always in range 0 - 8. 
     //      * This is because in the future i will port my probability distribution function which will calculate correct skip_sizes (see 'decode_algorithm('))
     //        based on previously computed indices. This will ensure that the pattern will majority of the time be within the first 16 - 'len_of_pattern' when searching for it
     //        meaning only a single seek is needed not 'len_of_pattern' seeks. 
-    // - This function will return the bitmask, NOT relative index. 
-    //      * I might change this in the future depending on which implementation of the probability distribution function
     inline __attribute__((always_inline))
-    u32 find_pattern_32a(const char* text, const char* pattern){
-        __m256i a = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
-        __m256i b = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
-        const __m256i z = _mm256_setzero_si256();
+    u32 find_pattern_32a(const char* chunk, const char* pattern){
+        __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
+        __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
+        const __m256i zero_mask = _mm256_setzero_si256();
 
-        __m256i h = _mm256_mpsadbw_epu8(a, b, 0);
+        __m256i sad_vec = _mm256_mpsadbw_epu8(chunk_vec, pattern_vec, 0);
+        __m256i found_matches = _mm256_cmpeq_epi16(sad_vec, zero_mask);
 
-        h = _mm256_cmpeq_epi16(h, z);
-        
-        u32 r = _mm256_movemask_epi8(h);
+        i32 match_mask = _mm256_movemask_epi8(found_matches);
+        i32 match_mask_is_invalid = numbers::op::lte(match_mask, 0);
 
-        return r;
+        u32 trail_count = __builtin_ctz(match_mask + match_mask_is_invalid) >> 1;
+        u32 idx = trail_count + (match_mask_is_invalid ^ 1);
+
+        return idx;
     };
 
 }
@@ -130,7 +130,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     u32 mi_idx = 1;
 
     // Handle unrolled vectorized market_indices calculations
-    for(u32 i=0; i<25; i++){
+    for(u32 i=0; i<num_entries; i++){
         // Offset calculations
         i32 is_vectorizable = numbers::op::lte( (absolute_offset + 32), data_size);
         u32 is_vectorizable_mask = 0 - is_vectorizable;

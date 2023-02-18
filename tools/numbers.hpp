@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdio.h>
+
 #include <cmath> // std::log10, std::floor, std::abs
 #include <algorithm> // std::fill_n
 
@@ -48,22 +50,10 @@ namespace ctrader::tools::numbers {
             u32 msg_val_state_mask = 0 - msg_val_state;
 
             total_msg_size += msg_val * (msg_size_multiplier & msg_val_state_mask);
-            msg_size_multiplier = (msg_size_multiplier << (3 & msg_val_state_mask) ) + ( msg_size_multiplier << (1 & msg_val_state_mask) );
+            msg_size_multiplier = (msg_size_multiplier << (3 & msg_val_state_mask) ) + (( msg_size_multiplier << 1 ) & msg_val_state_mask);
         }
 
         return total_msg_size;
-    }
-
-    template<> u32 to_num_estimate<u32, 4>(const char* buff){
-        u32 first_val = ((buff[0] - '0') * 1000U);
-        u32 last_val = buff[3] - '0';
-        u32 last_val_state = op::gte(last_val, 0) & op::lte(last_val, 9);
-        return ( 
-            first_val +
-            ((buff[1] - '0') * 100U) +
-            ((buff[2] - '0') * 10U) +
-            (last_val * last_val_state)
-        ) - first_val * (last_val_state ^ 1);
     }
 
     template<typename T, T N>
