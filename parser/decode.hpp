@@ -62,6 +62,39 @@ namespace {
     //     return pos + 1;
     // };
 
+    // Optimization of EPSMA-1 algorithm which can find patterns in the entire 32 byte chunk instead of only the first 8 bytes. 
+    // This does force you to perform (max_index / 8) + 1 permutations. 
+    template <u32 MAX_SEEK_SIZE, u32 PERMUTES = numbers::min_permutes(MAX_SEEK_SIZE)>
+    inline __attribute__((always_inline))
+    u32 find_pattern_full(const char* chunk, const char* pattern){
+        __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
+        __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
+        __m256i sad_vec, found_matches;
+
+        const __m256i zero_mask = _mm256_setzero_si256();
+        const __m256i permute = _mm256_setr_epi32(2, 3, 4, 5, 6, 7, 1, 0);
+
+        i32 match_mask = 0, match_mask_is_valid = 0;
+        u32 idx = 0, offset = 0, match_mask_is_valid_mask = 0, trail_count = 0;
+
+        for(u32 i=0; i<PERMUTES; i++){
+            sad_vec = _mm256_mpsadbw_epu8(chunk_vec, pattern_vec, 0);
+            found_matches = _mm256_cmpeq_epi16(sad_vec, zero_mask);
+
+            match_mask = _mm256_movemask_epi8(found_matches);
+            match_mask_is_valid = numbers::op::gte(match_mask, 1);
+            match_mask_is_valid_mask = 0 - match_mask_is_valid;
+
+            trail_count = __builtin_ctz(match_mask + (match_mask_is_valid ^ 1) ) >> 1;
+            idx += (offset + trail_count + 1) & match_mask_is_valid_mask;
+            
+            offset += 8;
+            chunk_vec = _mm256_permutevar8x32_epi32(chunk_vec, permute);
+        }
+
+        return idx;
+    };
+
     // Based on EPSMA-1 algorithm but in this version you only need to calculate SAD values 1-2 times vs `len_of_pattern` times
     // - If you want to increase the probability that patterns are detected correctly you can perform an additional `_mm256_mpsadbw_epu8()` 
     //   offset by `len_of_pattern` and substract `len_of_pattern` from the found index. This second seek is not nessecary however as index are always in range 0 - 8. 
@@ -69,7 +102,7 @@ namespace {
     //        based on previously computed indices. This will ensure that the pattern will majority of the time be within the first 16 - 'len_of_pattern' when searching for it
     //        meaning only a single seek is needed not 'len_of_pattern' seeks. 
     inline __attribute__((always_inline))
-    u32 find_pattern_32a(const char* chunk, const char* pattern){
+    u32 find_pattern_begin(const char* chunk, const char* pattern){
         __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
         __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
         const __m256i zero_mask = _mm256_setzero_si256();
@@ -85,6 +118,7 @@ namespace {
 
         return idx;
     };
+
 
 }
 
@@ -136,7 +170,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
         u32 is_vectorizable_mask = 0 - is_vectorizable;
 
         u32 chunk_start = absolute_offset & is_vectorizable_mask;
-        u32 search_idx = find_pattern_32a(data+chunk_start, __DECODE_GEN_PATTERN(279));
+        u32 search_idx = find_pattern_begin(data+chunk_start, __DECODE_GEN_PATTERN(279));
 
         i32 is_found = numbers::op::gte(search_idx, 0);
         u32 is_found_and_vectorizable_mask = 0 - (is_found & is_vectorizable);
@@ -163,7 +197,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     u32 end_size = data_size - absolute_offset;
     u32 padding_size = 32U - end_size;
 
-    u32 search_idx = find_pattern_32a(data+(absolute_offset-padding_size), __DECODE_GEN_PATTERN(279));
+    u32 search_idx = find_pattern_begin(data+(absolute_offset-padding_size), __DECODE_GEN_PATTERN(279));
 
     i32 is_found = numbers::op::gte( search_idx, 0);
     u32 is_found_mask = 0 - is_found;

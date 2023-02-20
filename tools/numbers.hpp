@@ -22,6 +22,17 @@ namespace ctrader::tools::numbers {
         inline __attribute__((always_inline)) i32 ne(i32 a, i32 b){ return negate(a ^ b) ^ 1; }
     }
 
+    consteval u32 min_permutes( const u32 size ){
+        i32 remainder = size;
+        u32 len = 0;
+        while( remainder > 0 ){
+            remainder -= 8;
+            len++;
+        }
+
+        return len;
+    }
+
     template<typename VAL, typename RET = VAL>
     inline __attribute__((always_inline)) 
     consteval RET digit_count(VAL val){
