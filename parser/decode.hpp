@@ -1,9 +1,10 @@
 #pragma once
 
-#include <x86intrin.h>
+#include <stdio.h>
 
 #include "types/decode.hpp"
 #include "types/symbol.hpp"
+#include "types/execution.hpp"
 
 #include "tools/numbers.hpp"
 
@@ -15,16 +16,21 @@ using namespace ctrader::types::decode;
 using namespace ctrader::types::symbol;
 using namespace ctrader::tools;
 
-
 namespace {
-
-    using namespace ctrader::data;
-    using namespace ctrader::settings;
 
     #define __DECODE_GEN_PATTERN(pattern) __SETTINGS_SOH #pattern
 
+    #define __DECODE_CASE(TYPE) \
+        const u32 header_size = get_message_header_size(msg_seq_num_digit_size);\
+        const u32 data_size = get_message_size(data, header_size);\
+        const u32 offset = ( 12U + msg_size_digit_size + header_size );\
+        const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);\
+        decode_algorithm<TYPE>(data + offset + 7, data_size, num_entries);\
+        break;\
+
     inline __attribute__((always_inline))
     u32 get_message_header_size(const u32 msg_seq_num_digit_size){
+        using namespace ctrader::settings;
         return ( 
                 9U + // |35=X|34=
                 msg_seq_num_digit_size + // {0:1-18}
@@ -40,85 +46,52 @@ namespace {
         return (msg_size_info - header_size - 7);
 
     };
-
-
-    // // |279=0|269=1|278=2291668712|55=1|270=1.08754|271=3000000
-    // inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    // void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 start, u16 end){
-    //     entry.UpdateAction = UPDATE_ACTION::NEW;
-    //     entry.EntryType = ENTRY_TYPE_LOOKUP[ chunk[11] - '0' ];
-    //     entry.EntryId = numbers::to_num<i64, 10>(chunk+17);
-
-
-    // }
     
-    // This function is just a placeholder used for debugging and will be replaced with a vecotized implementation later
-    // inline __attribute__((always_inline))
-    // u32 find_pattern_32a(const char* text, const char* pattern){
-    //     std::string _text(text, 32);
-    //     std::string _pattern(pattern, 4);
-    //     auto pos = _text.find(_pattern);
-    //     if (pos == std::string::npos){ return 0U; }
-    //     return pos + 1;
-    // };
-
-    // Optimization of EPSMA-1 algorithm which can find patterns in the entire 32 byte chunk instead of only the first 8 bytes. 
-    // This does force you to perform (max_index / 8) + 1 permutations. 
-    template <u32 MAX_SEEK_SIZE, u32 PERMUTES = numbers::min_permutes(MAX_SEEK_SIZE)>
+    // |279=0|269=1|278=2291667248|55=1|270=1.08754|271=5000000
     inline __attribute__((always_inline))
-    u32 find_pattern_full(const char* chunk, const char* pattern){
-        __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
-        __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
-        __m256i sad_vec, found_matches;
+    void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
+        using namespace ctrader::types::execution;
 
-        const __m256i zero_mask = _mm256_setzero_si256();
-        const __m256i permute = _mm256_setr_epi32(2, 3, 4, 5, 6, 7, 1, 0);
+        entry.UpdateAction = UPDATE_ACTION::NEW;
+        entry.EntryType = static_cast<ENTRY_TYPE>( chunk[11] - '0' );
+        
+        u16 entryLength;
+        u16 offset = 17;
 
-        i32 match_mask = 0, match_mask_is_valid = 0;
-        u32 idx = 0, offset = 0, match_mask_is_valid_mask = 0, trail_count = 0;
+        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
+        entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
+        offset += entryLength + 4; // |55=
 
-        for(u32 i=0; i<PERMUTES; i++){
-            sad_vec = _mm256_mpsadbw_epu8(chunk_vec, pattern_vec, 0);
-            found_matches = _mm256_cmpeq_epi16(sad_vec, zero_mask);
+        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
+        entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
+        offset += entryLength + 5; // |270= 
 
-            match_mask = _mm256_movemask_epi8(found_matches);
-            match_mask_is_valid = numbers::op::gte(match_mask, 1);
-            match_mask_is_valid_mask = 0 - match_mask_is_valid;
+        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
+        numbers::to_ffloat_t(chunk+offset, entryLength, entry.EntryPrice);
+        offset += entryLength + 5; // // |271=
 
-            trail_count = __builtin_ctz(match_mask + (match_mask_is_valid ^ 1) ) >> 1;
-            idx += (offset + trail_count + 1) & match_mask_is_valid_mask;
-            
-            offset += 8;
-            chunk_vec = _mm256_permutevar8x32_epi32(chunk_vec, permute);
-        }
+        entryLength = (end - begin) - offset;
+        entry.EntrySize = numbers::to_num<i64>(chunk+offset, entryLength);
+    }
 
-        return idx;
-    };
-
-    // Based on EPSMA-1 algorithm but in this version you only need to calculate SAD values 1-2 times vs `len_of_pattern` times
-    // - If you want to increase the probability that patterns are detected correctly you can perform an additional `_mm256_mpsadbw_epu8()` 
-    //   offset by `len_of_pattern` and substract `len_of_pattern` from the found index. This second seek is not nessecary however as index are always in range 0 - 8. 
-    //      * This is because in the future i will port my probability distribution function which will calculate correct skip_sizes (see 'decode_algorithm('))
-    //        based on previously computed indices. This will ensure that the pattern will majority of the time be within the first 16 - 'len_of_pattern' when searching for it
-    //        meaning only a single seek is needed not 'len_of_pattern' seeks. 
+    // |279=2|278=2291666392|55=1
     inline __attribute__((always_inline))
-    u32 find_pattern_begin(const char* chunk, const char* pattern){
-        __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
-        __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
-        const __m256i zero_mask = _mm256_setzero_si256();
+    void create_remove_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
+        using namespace ctrader::types::execution;
 
-        __m256i sad_vec = _mm256_mpsadbw_epu8(chunk_vec, pattern_vec, 0);
-        __m256i found_matches = _mm256_cmpeq_epi16(sad_vec, zero_mask);
+        entry.UpdateAction = UPDATE_ACTION::DELETE;
+        entry.EntryType = ENTRY_TYPE::UNKNOWN;
+        
+        u16 entryLength;
+        u16 offset = 11;
 
-        i32 match_mask = _mm256_movemask_epi8(found_matches);
-        i32 match_mask_is_invalid = numbers::op::lte(match_mask, 0);
+        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
+        entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
+        offset += entryLength + 4; // |55=
 
-        u32 trail_count = __builtin_ctz(match_mask + match_mask_is_invalid) >> 1;
-        u32 idx = trail_count + (match_mask_is_invalid ^ 1);
-
-        return idx;
-    };
-
+        entryLength = (end - begin) - offset;
+        entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
+    }
 
 }
 
@@ -128,18 +101,20 @@ struct Decoder{
     inline __attribute__((always_inline))
     void decode_any(const char* data, const u32 msg_seq_num_digit_size);
 
-     template<DECODE_TYPE T>
-     inline __attribute__((always_inline))
-     void decode(const char* data, const u32 msg_seq_num_digit_size){
-        const u32 msg_size_digit_size = numbers::to_digit_size<u32, 4>(data+12);
+    template<DECODE_TYPE T>
+    inline __attribute__((always_inline))
+    void decode(const char* data, const u32 msg_seq_num_digit_size){
+        const u32 msg_size_digit_size = numbers::digit_count<u32, 4>(data+12);
         const u32 header_size = get_message_header_size(msg_seq_num_digit_size);
         const u32 data_size = get_message_size(data, header_size);
         const u32 offset = ( 12U + msg_size_digit_size + header_size );
         const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);
+        market_data.data_len = num_entries;
         decode_algorithm<T>(data + offset + 7, data_size, num_entries);
-     }    
+    }    
 
 private:
+
     template<DECODE_TYPE T>
     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
     void decode_algorithm(const char* data, const u32 data_size, const u32 num_entries);
@@ -154,7 +129,8 @@ public:
 
 template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(const char* data, const u32 data_size, const u32 num_entries){
 
-    static const u32 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
+    static constexpr u8 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
+    static constexpr char pattern[32] = __DECODE_GEN_PATTERN(279);
 
     // Precalculate first entry (always starts at i=0)
     u32 message_type = ( data[5] - '0' );
@@ -163,14 +139,14 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     u32 old_message_type = message_type;
     u32 mi_idx = 1;
 
-    // Handle unrolled vectorized market_indices calculations
+    // Handle vectorized market_indices calculations
     for(u32 i=0; i<num_entries; i++){
         // Offset calculations
         i32 is_vectorizable = numbers::op::lte( (absolute_offset + 32), data_size);
         u32 is_vectorizable_mask = 0 - is_vectorizable;
 
         u32 chunk_start = absolute_offset & is_vectorizable_mask;
-        u32 search_idx = find_pattern_begin(data+chunk_start, __DECODE_GEN_PATTERN(279));
+        u32 search_idx = memory::find_pattern_begin(data+chunk_start, pattern);
 
         i32 is_found = numbers::op::gte(search_idx, 0);
         u32 is_found_and_vectorizable_mask = 0 - (is_found & is_vectorizable);
@@ -197,7 +173,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     u32 end_size = data_size - absolute_offset;
     u32 padding_size = 32U - end_size;
 
-    u32 search_idx = find_pattern_begin(data+(absolute_offset-padding_size), __DECODE_GEN_PATTERN(279));
+    u32 search_idx = memory::find_pattern_begin(data+(absolute_offset-padding_size), pattern);
 
     i32 is_found = numbers::op::gte( search_idx, 0);
     u32 is_found_mask = 0 - is_found;
@@ -214,7 +190,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     // Filter out found index ranges and stores in temporary array
     u32 market_insert_count = 0, market_remove_count = 0, market_insert_idx = 0, market_remove_idx = 0;
 
-    for (u32 i = 0; i < 25; i++){
+    for (u32 i = 0; i < num_entries; i++){
         i32 begin_insert = market_indices[0][i].begin;
         i32 end_insert = market_indices[0][i].end;
         i32 begin_remove = market_indices[2][i].begin;
@@ -234,21 +210,23 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
         market_remove_index_filter.data[ market_remove_idx & result_state_remove_mask ] = i;
     }
 
-    market_insert_index_filter.data_len = market_insert_count;
-    market_remove_index_filter.data_len = market_remove_count;
+    for(u32 i=0; i<market_insert_count; i++){
+        const u8 & idx = market_insert_index_filter.data[i+1];
+        const index_range& offset = market_indices[0][idx];
+        create_insert_order_inc(data+offset.begin, market_data.data[i], offset.begin, offset.end);
+    }
+
+    for(u32 i=0; i<market_remove_count; i++){
+        const u8 & idx = market_remove_index_filter.data[i+1];
+        const index_range& offset = market_indices[2][idx];
+        create_remove_order_inc(data+offset.begin, market_data.data[market_insert_count+i], offset.begin, offset.end);
+    }
 
 };
 
-#define __DECODE_CASE(TYPE) \
-    const u32 header_size = get_message_header_size(msg_seq_num_digit_size);\
-    const u32 data_size = get_message_size(data, header_size);\
-    const u32 offset = ( 12U + msg_size_digit_size + header_size );\
-    const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);\
-    decode_algorithm<TYPE>(data + offset + 7, data_size, num_entries);\
-    break;\
-
 void Decoder::decode_any(const char* data, const u32 msg_seq_num_digit_size){
-    const u32 msg_size_digit_size = numbers::to_digit_size<u32, 4>(data+12);
+    
+    const u32 msg_size_digit_size = numbers::digit_count<u32, 4>(data+12);
     const char msg_type = data[12 + msg_size_digit_size + 4];
 
     switch(msg_type){

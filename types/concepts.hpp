@@ -3,9 +3,7 @@
 #include <chrono>
 #include <concepts>
 
-namespace ctrader::tools::concepts {
-
-    using namespace ctrader::types::numbers;
+namespace ctrader::types::concepts {
 
     template<auto SIZE>
     concept is_32byte_alignable = SIZE % 32 == 0;
@@ -28,4 +26,4 @@ namespace ctrader::tools::concepts {
         std::is_same<T, std::chrono::minutes>::value ||
         std::is_same<T, std::chrono::hours>::value;
 
-} //ctrader::tools::concepts
+} //ctrader::types::concepts

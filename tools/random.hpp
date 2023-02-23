@@ -6,7 +6,7 @@
 namespace ctrader::tools::random{
 
     using namespace ctrader::types::numbers;
-    using namespace ctrader::tools::concepts;
+    using namespace ctrader::types::concepts;
 
     namespace {
 

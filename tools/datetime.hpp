@@ -4,8 +4,12 @@
 
 #include "tools/memory.hpp"
 #include "tools/numbers.hpp"
+#include "settings.hpp"
 
 namespace ctrader::tools::datetime {
+    using namespace ctrader::settings;
+
+    #define __DATE_TIME_MASK __SETTINGS_SOH "52=00000000-00:00:00.000000" __SETTINGS_SOH "49="
 
     inline __attribute__((always_inline))
     void current_timestamp_from_offset( char* out ){
@@ -20,7 +24,7 @@ namespace ctrader::tools::datetime {
         hh_mm_ss hms{local_time-local_time_in_days};
         
         // clear buffer with zeros to allow signle digits to be represented correct as '05' vs 'n5'
-        memory::memcpy_32(out, "|52=00000000-00:00:00.000000|49="); 
+        memory::memcpy_32(out, __DATE_TIME_MASK); 
 
         numbers::to_string(out+4, out+8, int{ymd.year()});
         numbers::to_string(out+8, out+10, unsigned{ymd.month()});

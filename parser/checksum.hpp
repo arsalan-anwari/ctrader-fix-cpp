@@ -3,11 +3,11 @@
 #include <x86intrin.h>
 
 #include "types/numbers.hpp"
-#include "tools/concepts.hpp"
+#include "types/concepts.hpp"
 
 namespace ctrader::parser {
 
-    using namespace ctrader::tools::concepts;
+    using namespace ctrader::types::concepts;
     using namespace ctrader::types::numbers;
 
     template<std::size_t SIZE, u8 REM = SIZE % 32> requires is_minimum_size<SIZE, 32>

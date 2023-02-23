@@ -42,17 +42,17 @@ namespace ctrader::types::decode {
         ENTRY_TYPE EntryType = ENTRY_TYPE::UNKNOWN;
         SYMBOL Symbol = SYMBOL::UNKNOWN;
         i64 EntryId = -1;
-        float EntryPrice = -1.0;
+        ffloat_t EntryPrice = {0,0,4};
         i64 EntrySize = -1;
     };
     
 
     template<DATA_TYPE T>
-    using message_container = simple_buffer_t<decode_data<T>, 100>;
+    using message_container = simple_buffer_t<decode_data<T>, 128>;
 
-    using market_index_container = sparse_chunk_buffer_2d_t<index_range, 100, 4>;
+    using market_index_container = sparse_chunk_buffer_2d_t<index_range, 128, 4>;
 
-    using market_index_filter = simple_buffer_t<u8, 100>;
+    using market_index_filter = simple_buffer_t<u8, 128>;
 
 
 
