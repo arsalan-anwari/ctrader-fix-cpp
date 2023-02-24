@@ -4,7 +4,6 @@
 
 #include "types/numbers.hpp"
 #include "types/decimal.hpp"
-#include "types/memory.hpp"
 #include "types/symbol.hpp"
 
 #include "settings.hpp"
@@ -14,7 +13,6 @@ namespace ctrader::types::decode {
     using namespace ctrader::settings;
     using namespace ctrader::types::numbers;
     using namespace ctrader::types::decimal;
-    using namespace ctrader::types::memory;
     using namespace ctrader::types::symbol;
 
     enum class UPDATE_ACTION : u32 { NEW, UNKNOWN, DELETE };
@@ -31,8 +29,6 @@ namespace ctrader::types::decode {
         QUOTE_DATA
     };
 
-    struct index_range { u16 begin = 0; u16 end = 0; };
-
     template <DATA_TYPE T> struct decode_data {};
 
     template<>
@@ -45,14 +41,4 @@ namespace ctrader::types::decode {
         i64 EntrySize = -1;
     };
     
-
-    template<DATA_TYPE T>
-    using message_container = simple_buffer_t<decode_data<T>, 128>;
-
-    using market_index_container = sparse_chunk_buffer_2d_t<index_range, 128, 4>;
-
-    using market_index_filter = simple_buffer_t<u8, 128>;
-
-
-
 }
