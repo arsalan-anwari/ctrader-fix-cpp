@@ -30,13 +30,12 @@ namespace ctrader::tools::random{
 
         // first numbers generated as average of outliers in set of random binomial distribution
         // second number is bitshift of compilation time --> this way each sequential compilation will also generated partially new keys. 
-        u64 seeds[2] = {346786427839U, new_seed()};
+        constexpr u64 seeds[2] = {346786427839U, new_seed()};
 
     }
 
     // Based on XorShift128+ algorithm
-     inline __attribute__((always_inline))
-    u64 rand(){
+    constexpr inline u64 rand(){
         u64 x = seeds[0];
         u64 const y = seeds[1];
         seeds[0] = y;
@@ -48,15 +47,9 @@ namespace ctrader::tools::random{
     // Modulo of base 2 is much faster than generic modulo of other numbers. 
     // No loop needed only sigle bit operation
     template<u8 N> requires is_power_of_2<N>
-     inline __attribute__((always_inline))
-    u8 rand_n(){
-        return (rand() & (N - 1));
-    };
+    constexpr inline u8 rand_n(){ return (rand() & (N - 1)); };
 
 
-     inline __attribute__((always_inline))
-    char rand_anum(){
-        return anumLookup[rand_n<64>()];
-    };
+    constexpr inline char rand_anum(){ return anumLookup[rand_n<64>()]; };
 
 }

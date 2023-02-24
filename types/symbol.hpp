@@ -11,10 +11,6 @@ namespace ctrader::types::symbol {
         EUR_USD = 1UL
     };
 
-    constexpr SYMBOL SYMBOL_LOOKUP[] = {
-        SYMBOL::UNKNOWN, SYMBOL::EUR_USD
-    };
-
     constexpr u8 SYMBOL_DIGIT_SIZE[] = {
         1, 1
     };

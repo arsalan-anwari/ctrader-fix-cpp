@@ -1,35 +1,31 @@
 #pragma once
 
-#include <stdio.h>
-
 #include "types/decode.hpp"
 #include "types/symbol.hpp"
-#include "types/execution.hpp"
 
 #include "tools/numbers.hpp"
-
 #include "settings.hpp"
 
 namespace ctrader::parser::decode {
 
 using namespace ctrader::types::decode;
 using namespace ctrader::types::symbol;
-using namespace ctrader::tools;
 
 namespace {
 
-    #define __DECODE_GEN_PATTERN(pattern) __SETTINGS_SOH #pattern
+    #define __DECODE_GEN_PATTERN(pattern) __SETTINGS_SOH_STR #pattern
 
     #define __DECODE_CASE(TYPE) \
+        const u32 msg_seq_num_digit_size = memory::find<20>(data+12+msg_size_digit_size+9, __SETTINGS_SOH_CHAR);\
         const u32 header_size = get_message_header_size(msg_seq_num_digit_size);\
-        const u32 data_size = get_message_size(data, header_size);\
+        const u32 data_size = numbers::to_num(data+12, msg_size_digit_size) - header_size - 7;\
         const u32 offset = ( 12U + msg_size_digit_size + header_size );\
-        const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);\
+        const u32 num_entries = numbers::to_num(data + offset + 5, memory::find<4>(data + offset + 5, __SETTINGS_SOH_CHAR));\
+        market_data.data_len = num_entries;\
         decode_algorithm<TYPE>(data + offset + 7, data_size, num_entries);\
         break;\
 
-    inline __attribute__((always_inline))
-    u32 get_message_header_size(const u32 msg_seq_num_digit_size){
+    inline u32 get_message_header_size(const u32 msg_seq_num_digit_size){
         using namespace ctrader::settings;
         return ( 
                 9U + // |35=X|34=
@@ -39,18 +35,9 @@ namespace {
         );
     }
 
-    inline __attribute__((always_inline))
-    u32 get_message_size(const char* data, const u32 header_size){
-
-        const u32 msg_size_info = numbers::to_num_estimate<u32, 4>(data+12);
-        return (msg_size_info - header_size - 7);
-
-    };
-    
-    // |279=0|269=1|278=2291667248|55=1|270=1.08754|271=5000000
-    inline __attribute__((always_inline))
-    void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
-        using namespace ctrader::types::execution;
+    inline void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
+        using namespace ctrader::tools;
+        // example entry: |279=0|269=1|278=2291667248|55=1|270=1.08754|271=5000000
 
         entry.UpdateAction = UPDATE_ACTION::NEW;
         entry.EntryType = static_cast<ENTRY_TYPE>( chunk[11] - '0' );
@@ -58,26 +45,25 @@ namespace {
         u16 entryLength;
         u16 offset = 17;
 
-        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
+        entryLength = memory::find<12>(chunk+offset, __SETTINGS_SOH_CHAR);
         entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
         offset += entryLength + 4; // |55=
 
-        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
+        entryLength = memory::find<10>(chunk+offset, __SETTINGS_SOH_CHAR);
         entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
         offset += entryLength + 5; // |270= 
 
-        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
-        numbers::to_ffloat_t(chunk+offset, entryLength, entry.EntryPrice);
+        entryLength = memory::find<16>(chunk+offset, __SETTINGS_SOH_CHAR);
+        entry.EntryPrice.from_cstr(chunk+offset, entryLength);
         offset += entryLength + 5; // // |271=
 
         entryLength = (end - begin) - offset;
         entry.EntrySize = numbers::to_num<i64>(chunk+offset, entryLength);
     }
 
-    // |279=2|278=2291666392|55=1
-    inline __attribute__((always_inline))
-    void create_remove_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
-        using namespace ctrader::types::execution;
+    inline void create_remove_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
+        using namespace ctrader::tools;
+        // example entry: |279=2|278=2291666392|55=1
 
         entry.UpdateAction = UPDATE_ACTION::DELETE;
         entry.EntryType = ENTRY_TYPE::UNKNOWN;
@@ -85,7 +71,7 @@ namespace {
         u16 entryLength;
         u16 offset = 11;
 
-        entryLength = memory::find<EXEC_TYPE::AVX>(chunk+offset, '|');
+        entryLength = memory::find<12>(chunk+offset, __SETTINGS_SOH_CHAR);
         entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
         offset += entryLength + 4; // |55=
 
@@ -95,29 +81,28 @@ namespace {
 
 }
 
-
 struct Decoder{
 
-    inline __attribute__((always_inline))
-    void decode_any(const char* data, const u32 msg_seq_num_digit_size);
+    inline void decode_any(const char* data);
 
     template<DECODE_TYPE T>
-    inline __attribute__((always_inline))
-    void decode(const char* data, const u32 msg_seq_num_digit_size){
-        const u32 msg_size_digit_size = numbers::digit_count<u32, 4>(data+12);
+    inline void decode(const char* data){
+        using namespace ctrader::tools;
+        const u32 msg_size_digit_size = memory::find<5>(data+12, __SETTINGS_SOH_CHAR);
+        const u32 msg_seq_num_digit_size = memory::find<20>(data+12+msg_size_digit_size+9, __SETTINGS_SOH_CHAR);
         const u32 header_size = get_message_header_size(msg_seq_num_digit_size);
-        const u32 data_size = get_message_size(data, header_size);
+        const u32 data_size = numbers::to_num(data+12, msg_size_digit_size) - header_size - 7;
         const u32 offset = ( 12U + msg_size_digit_size + header_size );
-        const u32 num_entries = numbers::to_num<u32, 2>(data + offset + 5);
+        const u32 num_entries = numbers::to_num(data + offset + 5, memory::find<4>(data + offset + 5, __SETTINGS_SOH_CHAR));
         market_data.data_len = num_entries;
+        
         decode_algorithm<T>(data + offset + 7, data_size, num_entries);
     }    
 
 private:
 
     template<DECODE_TYPE T>
-    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    void decode_algorithm(const char* data, const u32 data_size, const u32 num_entries);
+    inline void decode_algorithm(const char* data, const u32 data_size, const u32 num_entries);
 
 public:
     message_container<DATA_TYPE::MARKET_DATA> market_data;
@@ -128,9 +113,11 @@ public:
 };
 
 template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(const char* data, const u32 data_size, const u32 num_entries){
-
+    using namespace ctrader::tools;
     static constexpr u8 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
     static constexpr char pattern[32] = __DECODE_GEN_PATTERN(279);
+
+    //printf("%.*s data_size=%u entries=%u\n", data_size, data, data_size, num_entries);
 
     // Precalculate first entry (always starts at i=0)
     u32 message_type = ( data[5] - '0' );
@@ -142,7 +129,7 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
     // Handle vectorized market_indices calculations
     for(u32 i=0; i<num_entries; i++){
         // Offset calculations
-        i32 is_vectorizable = numbers::op::lte( (absolute_offset + 32), data_size);
+        i32 is_vectorizable = numbers::op::lte( (absolute_offset + 32U), data_size);
         u32 is_vectorizable_mask = 0 - is_vectorizable;
 
         u32 chunk_start = absolute_offset & is_vectorizable_mask;
@@ -224,16 +211,33 @@ template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
 
 };
 
-void Decoder::decode_any(const char* data, const u32 msg_seq_num_digit_size){
-    
-    const u32 msg_size_digit_size = numbers::digit_count<u32, 4>(data+12);
+
+
+void Decoder::decode_any(const char* data){
+    using namespace ctrader::tools;
+    const u32 msg_size_digit_size = memory::find<5>(data+12, __SETTINGS_SOH_CHAR);
     const char msg_type = data[12 + msg_size_digit_size + 4];
 
     switch(msg_type){
         case 'X': { __DECODE_CASE(DECODE_TYPE::MARKET_DATA_INCREMENTAL) }
     }
-
 }
+
+
+
+// 8=FIX.4.4|9=1128|35=X|34=3|
+// void Decoder::decode_any(const char* data){
+//     using namespace ctrader::tools;
+    
+//     const u32 msg_size_digit_size = memory::find<5>(data+12, __SETTINGS_SOH_CHAR);
+//     const char msg_type = data[12 + msg_size_digit_size + 4];
+//     const u32 msg_seq_num_digit_size = memory::find<20>(data+12+msg_size_digit_size+9, __SETTINGS_SOH_CHAR);
+
+//     switch(msg_type){
+//         case 'X': { __DECODE_CASE(DECODE_TYPE::MARKET_DATA_INCREMENTAL) }
+//     }
+
+// }
 
 
 } // ctrader::parser

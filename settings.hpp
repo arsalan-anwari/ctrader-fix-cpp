@@ -4,16 +4,15 @@
 
 #include "types/numbers.hpp"
 
-#include "data/field_id.hpp"
-
 namespace ctrader::settings {
     using namespace ctrader::types::numbers;
 
     constexpr u8           HearthBeatIntervalSec = 30;
     constexpr u8           MsgSeqNumDigitSize = 18; // range {1 ... 18}
-    constexpr u8           KeySize = ctrader::data::field_id::KeySize;
-    constexpr char              SOHChar = '|'; //mostly used for debugging output, set to '\1' on release
-    #define __SETTINGS_SOH "|"
+    constexpr u8           KeySize = 6;
+   
+    #define __SETTINGS_SOH_STR "|"
+    #define __SETTINGS_SOH_CHAR '|'
 
     namespace broker {
 

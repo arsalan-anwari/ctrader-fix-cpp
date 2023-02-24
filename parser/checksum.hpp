@@ -11,8 +11,7 @@ namespace ctrader::parser {
     using namespace ctrader::types::numbers;
 
     template<std::size_t SIZE, u8 REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
-     inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    u8 calc_checksum( const char* data ){
+    inline u8 calc_checksum( const char* data ){
         const __m256i zeroVec = _mm256_setzero_si256();
         const __m256i oneVec = _mm256_set1_epi16(1);
         __m256i accum = _mm256_setzero_si256();

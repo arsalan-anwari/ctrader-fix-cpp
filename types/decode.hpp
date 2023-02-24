@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include "types/numbers.hpp"
+#include "types/decimal.hpp"
 #include "types/memory.hpp"
 #include "types/symbol.hpp"
 
@@ -12,14 +13,13 @@ namespace ctrader::types::decode {
 
     using namespace ctrader::settings;
     using namespace ctrader::types::numbers;
+    using namespace ctrader::types::decimal;
     using namespace ctrader::types::memory;
     using namespace ctrader::types::symbol;
 
     enum class UPDATE_ACTION : u32 { NEW, UNKNOWN, DELETE };
-    UPDATE_ACTION UPDATE_ACTION_LOOKUP[3] = { UPDATE_ACTION::NEW, UPDATE_ACTION::UNKNOWN, UPDATE_ACTION::DELETE };
 
     enum class ENTRY_TYPE : u32 { BID, OFFER, UNKNOWN };
-    ENTRY_TYPE ENTRY_TYPE_LOOKUP[3] = { ENTRY_TYPE::BID, ENTRY_TYPE::OFFER, ENTRY_TYPE::UNKNOWN };
 
     enum class DECODE_TYPE: u32 {
         MARKET_DATA_SNAPSHOT,
@@ -31,7 +31,6 @@ namespace ctrader::types::decode {
         QUOTE_DATA
     };
 
-    struct decode_metadata { u32 offset = 0; u32 size = 0; };
     struct index_range { u16 begin = 0; u16 end = 0; };
 
     template <DATA_TYPE T> struct decode_data {};
@@ -42,7 +41,7 @@ namespace ctrader::types::decode {
         ENTRY_TYPE EntryType = ENTRY_TYPE::UNKNOWN;
         SYMBOL Symbol = SYMBOL::UNKNOWN;
         i64 EntryId = -1;
-        ffloat_t EntryPrice = {0,0,4};
+        f32 EntryPrice = f32{};
         i64 EntrySize = -1;
     };
     

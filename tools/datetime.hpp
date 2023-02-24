@@ -9,10 +9,9 @@
 namespace ctrader::tools::datetime {
     using namespace ctrader::settings;
 
-    #define __DATE_TIME_MASK __SETTINGS_SOH "52=00000000-00:00:00.000000" __SETTINGS_SOH "49="
+    #define __DATE_TIME_MASK __SETTINGS_SOH_STR "52=00000000-00:00:00.000000" __SETTINGS_SOH_STR "49="
 
-    inline __attribute__((always_inline))
-    void current_timestamp_from_offset( char* out ){
+    inline void current_timestamp_from_offset( char* out ){
         using namespace std::chrono;
         using namespace ctrader::tools;
         

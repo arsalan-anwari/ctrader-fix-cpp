@@ -8,7 +8,6 @@
 
 namespace ctrader::data::message_data {
     
-
     namespace internal{
         using namespace ctrader::data::message;
         using namespace ctrader::data::body;
@@ -33,7 +32,7 @@ namespace ctrader::data::message_data {
             auto bodylenStr = numbers::to_simple_buffer<3>(bodylen);
 
             std::string data;
-            data += std::string("8=FIX.4.4") + SOHChar;
+            data += std::string("8=FIX.4.4") + __SETTINGS_SOH_STR;
 
             const field_t HeaderFields[7] = {
                 field_t{"9", std::string(bodylenStr.data, bodylenStr.data+bodylenStr.size) },
@@ -45,11 +44,11 @@ namespace ctrader::data::message_data {
                 field_t{"57", std::string( CONN_STRING[ static_cast<u8>(conn) ].data() ) }
             };
             
-            for(u8 i=0; i<7; i++){ data += ( HeaderFields[i].key + "=" + HeaderFields[i].value + SOHChar ); }
-            for(const auto& field: fields){ data += (field.key + "=" + field.value + SOHChar ); }
+            for(u8 i=0; i<7; i++){ data += ( HeaderFields[i].key + "=" + HeaderFields[i].value + __SETTINGS_SOH_STR ); }
+            for(const auto& field: fields){ data += (field.key + "=" + field.value + __SETTINGS_SOH_STR ); }
 
             data += "10=000";
-            data += SOHChar;
+            data += __SETTINGS_SOH_STR;
 
             std::copy(data.begin(), data.end(), buff.data);
 

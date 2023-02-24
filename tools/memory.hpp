@@ -1,10 +1,6 @@
 #pragma once
 
-#include <iostream>
-#include <bitset>
-
 #include <x86intrin.h>
-#include <algorithm>
 
 #include "types/memory.hpp"
 #include "types/numbers.hpp"
@@ -13,17 +9,78 @@
 
 namespace {
     using namespace ctrader::types::numbers;
+    using namespace ctrader::types::execution;
 
-    consteval u32 min_permutes( const u32 size ){
+    consteval u32 min_permutes( const u32 size, const u8 chunk_size ){
         i32 remainder = size;
         u32 len = 0;
         while( remainder > 0 ){
-            remainder -= 8;
+            remainder -= chunk_size;
             len++;
         }
 
         return len;
     }
+
+    consteval EXEC_TYPE get_exec_type_epi8( const u32 stride ){
+        if (stride <= 16) { return EXEC_TYPE::AVX; }
+        if (stride <= 32) { return EXEC_TYPE::AVX2; }
+        if (stride <= 64) { return EXEC_TYPE::AVX512; }
+        return EXEC_TYPE::SCALAR;
+    }
+
+    template<EXEC_TYPE T>
+    inline u32 _find( const char* buff, const char c );
+
+    template<EXEC_TYPE T>
+    inline u32 _find_end( const char* buff, const char c );
+
+    template<> u32 _find<EXEC_TYPE::AVX>( const char* buff, const char c ){
+        __m128i haystack_vec = _mm_load_si128( reinterpret_cast<const __m128i*>(buff) );
+        const __m128i needle_vec = _mm_set1_epi8(c);
+        __m128i result_vec = _mm_cmpeq_epi8(haystack_vec, needle_vec);
+
+        i32 result_mask = _mm_movemask_epi8(result_vec);
+        i32 result_mask_is_invalid = op::eq(result_mask, 0);
+        u32 found_pos = __builtin_ctz(result_mask + result_mask_is_invalid);
+        return found_pos;
+    } 
+
+    template<> u32 _find<EXEC_TYPE::AVX2>( const char* buff, const char c ){
+        __m256i haystack_vec = _mm256_load_si256( reinterpret_cast<const __m256i*>(buff) );
+        const __m256i needle_vec = _mm256_set1_epi8(c);
+        __m256i result_vec = _mm256_cmpeq_epi8(haystack_vec, needle_vec);
+
+        i32 result_mask = _mm256_movemask_epi8(result_vec);
+        i32 result_mask_is_invalid = op::eq(result_mask, 0);
+        u32 found_pos = __builtin_ctz(result_mask + result_mask_is_invalid);
+        return found_pos;
+    } 
+
+    template<> u32 _find_end<EXEC_TYPE::AVX>( const char* buff, const char c ){
+        __m128i haystack_vec = _mm_load_si128( reinterpret_cast<const __m128i*>(buff) );
+        const __m128i needle_vec = _mm_set1_epi8(c);
+        __m128i result_vec = _mm_cmpeq_epi8(haystack_vec, needle_vec);
+
+        i32 result_mask = ~(_mm_movemask_epi8(result_vec));
+        i32 result_mask_is_invalid = op::eq(result_mask, 0);
+        u32 trailing_size = __builtin_ctz(result_mask + result_mask_is_invalid);
+
+        return trailing_size;
+    } 
+
+    template<> u32 _find_end<EXEC_TYPE::AVX2>( const char* buff, const char c ){
+        __m256i haystack_vec = _mm256_load_si256( reinterpret_cast<const __m256i*>(buff) );
+        const __m256i needle_vec = _mm256_set1_epi8(c);
+        __m256i result_vec = _mm256_cmpeq_epi8(haystack_vec, needle_vec);
+
+        i32 result_mask = ~(_mm256_movemask_epi8(result_vec));
+        i32 result_mask_is_invalid = op::eq(result_mask, 0);
+        u32 trailing_size = __builtin_ctz(result_mask + result_mask_is_invalid);
+
+        return trailing_size;
+    } 
+
 }
 
 namespace ctrader::tools::memory {
@@ -34,8 +91,7 @@ namespace ctrader::tools::memory {
     using namespace ctrader::types::execution;
 
     template<std::size_t SIZE> requires is_32byte_alignable<SIZE>
-    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    void memcpy_32a(char* dst, const char* src){
+    inline void memcpy_32a(char* dst, const char* src){
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
             _mm256_store_si256(
                 reinterpret_cast<__m256i*>(dst+offset),
@@ -45,8 +101,7 @@ namespace ctrader::tools::memory {
     };
 
     template<std::size_t SIZE, u8 REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
-    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    void memcpy_32u(char* dst, const char* src){
+    inline void memcpy_32u(char* dst, const char* src){
 
         for(u8 i=0; i < REM; i++){ dst[i] = src[i]; }
 
@@ -59,8 +114,7 @@ namespace ctrader::tools::memory {
         
     };
 
-    inline __attribute__((always_inline))
-    void memcpy_32(char* dst, const char* src){
+    inline void memcpy_32(char* dst, const char* src){
         
             _mm256_store_si256(
                 reinterpret_cast<__m256i*>(dst),
@@ -69,59 +123,16 @@ namespace ctrader::tools::memory {
 
     };
 
-    template<EXEC_TYPE T>
-    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    u32 find( const char* buff, const char c );
+    template<u32 MAX_SEEK_SIZE, EXEC_TYPE T = get_exec_type_epi8(MAX_SEEK_SIZE)>
+    inline u32 find( const char* buff, const char c ) { return _find<T>(buff, c); }
 
-    template<EXEC_TYPE T>
-    inline __attribute__((always_inline)) __attribute__((optimize("unroll-loops")))
-    u32 find_end( const char* buff, const char c );
-
-    template<> u32 find<EXEC_TYPE::AVX>( const char* buff, const char c ){
-        __m128i haystack_vec = _mm_load_si128( reinterpret_cast<const __m128i*>(buff) );
-        const __m128i needle_vec = _mm_set1_epi8(c);
-        __m128i result_vec = _mm_cmpeq_epi8(haystack_vec, needle_vec);
-
-        i32 result_mask = _mm_movemask_epi8(result_vec);
-        i32 result_mask_is_invalid = op::eq(result_mask, 0);
-        u32 found_pos = __builtin_ctz(result_mask + result_mask_is_invalid);
-        return found_pos;
-    } 
-
-    template<> u32 find_end<EXEC_TYPE::AVX>( const char* buff, const char c ){
-        __m128i haystack_vec = _mm_load_si128( reinterpret_cast<const __m128i*>(buff) );
-        const __m128i needle_vec = _mm_set1_epi8(c);
-        __m128i result_vec = _mm_cmpeq_epi8(haystack_vec, needle_vec);
-
-        i32 result_mask = ~(_mm_movemask_epi8(result_vec));
-        i32 result_mask_is_invalid = op::eq(result_mask, 0);
-        u32 trailing_size = __builtin_ctz(result_mask + result_mask_is_invalid);
-
-        return trailing_size;
-    } 
-
-    template<typename T, std::size_t N>
-    constexpr simple_buffer_t<T, N> simple_buffer_from_buffer(const T* buff){
-        simple_buffer_t<T, N> res;
-        std::copy( buff, buff+N, res.data );
-        return res;
-    };
-
-    // This function is just a placeholder used for debugging and will be replaced with a vecotized implementation later
-    // inline __attribute__((always_inline))
-    // u32 find_pattern_32a(const char* text, const char* pattern){
-    //     std::string _text(text, 32);
-    //     std::string _pattern(pattern, 4);
-    //     auto pos = _text.find(_pattern);
-    //     if (pos == std::string::npos){ return 0U; }
-    //     return pos + 1;
-    // };
+    template<u32 MAX_SEEK_SIZE, EXEC_TYPE T = get_exec_type_epi8(MAX_SEEK_SIZE)>
+    inline u32 find_end( const char* buff, const char c ){ return _find_end<T>(buff, c); }
 
     // Optimization of EPSMA-1 algorithm which can find patterns in the entire 32 byte chunk instead of only the first 8 bytes. 
     // This does force you to perform (max_index / 8) + 1 permutations. 
-    template <u32 MAX_SEEK_SIZE, u32 PERMUTES = min_permutes(MAX_SEEK_SIZE)>
-    inline __attribute__((always_inline))
-    u32 find_pattern_full(const char* chunk, const char* pattern){
+    template <u32 MAX_SEEK_SIZE, u32 PERMUTES = min_permutes(MAX_SEEK_SIZE, 8)>
+    inline u32 find_pattern_full(const char* chunk, const char* pattern){
         __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
         __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
         __m256i sad_vec, found_matches;
@@ -156,8 +167,7 @@ namespace ctrader::tools::memory {
     //      * This is because in the future I will port my probability distribution function which will calculate correct skip_sizes (see 'decode_algorithm()')
     //        based on previously computed indices. This will ensure that the pattern will majority of the time be within the first 8 - 'len_of_pattern' when searching for it
     //        meaning only a single permutation is needed not 'len_of_pattern' permutations. 
-    inline __attribute__((always_inline))
-    u32 find_pattern_begin(const char* chunk, const char* pattern){
+    inline u32 find_pattern_begin(const char* chunk, const char* pattern){
         __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
         __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
         const __m256i zero_mask = _mm256_setzero_si256();
