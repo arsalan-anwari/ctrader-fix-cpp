@@ -36,49 +36,49 @@ namespace {
         );
     }
 
-    inline void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
-        using namespace ctrader::tools;
-        // example entry: |279=0|269=1|278=2291667248|55=1|270=1.08754|271=5000000
+    // inline void create_insert_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u32 size){
+    //     using namespace ctrader::tools;
+    //     // example entry: |279=0|269=1|278=2291667248|55=1|270=1.08754|271=5000000
 
-        entry.UpdateAction = UPDATE_ACTION::NEW;
-        entry.EntryType = static_cast<ENTRY_TYPE>( chunk[11] - '0' );
+    //     entry.UpdateAction = UPDATE_ACTION::NEW;
+    //     entry.EntryType = static_cast<ENTRY_TYPE>( chunk[11] - '0' );
         
-        u16 entryLength;
-        u16 offset = 17;
+    //     u32 entryLength;
+    //     u32 offset = 17;
 
-        entryLength = memory::find<12>(chunk+offset, __SETTINGS_SOH_CHAR);
-        entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
-        offset += entryLength + 4; // |55=
+    //     entryLength = memory::find<12>(chunk+offset, __SETTINGS_SOH_CHAR);
+    //     entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
+    //     offset += entryLength + 4; // |55=
 
-        entryLength = memory::find<10>(chunk+offset, __SETTINGS_SOH_CHAR);
-        entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
-        offset += entryLength + 5; // |270= 
+    //     entryLength = memory::find<10>(chunk+offset, __SETTINGS_SOH_CHAR);
+    //     entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
+    //     offset += entryLength + 5; // |270= 
 
-        entryLength = memory::find<16>(chunk+offset, __SETTINGS_SOH_CHAR);
-        entry.EntryPrice.from_cstr(chunk+offset, entryLength);
-        offset += entryLength + 5; // // |271=
+    //     entryLength = memory::find<16>(chunk+offset, __SETTINGS_SOH_CHAR);
+    //     entry.EntryPrice.from_cstr(chunk+offset, entryLength);
+    //     offset += entryLength + 5; // // |271=
 
-        entryLength = (end - begin) - offset;
-        entry.EntrySize = numbers::to_num<i64>(chunk+offset, entryLength);
-    }
+    //     entryLength = size - offset;
+    //     entry.EntrySize = numbers::to_num<i64>(chunk+offset, entryLength);
+    // }
 
-    inline void create_remove_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u16 begin, u16 end){
-        using namespace ctrader::tools;
-        // example entry: |279=2|278=2291666392|55=1
+    // inline void create_remove_order_inc(const char* chunk, decode_data<DATA_TYPE::MARKET_DATA>& entry, u32 size){
+    //     using namespace ctrader::tools;
+    //     // example entry: |279=2|278=2291666392|55=1
 
-        entry.UpdateAction = UPDATE_ACTION::DELETE;
-        entry.EntryType = ENTRY_TYPE::UNKNOWN;
+    //     entry.UpdateAction = UPDATE_ACTION::DELETE;
+    //     entry.EntryType = ENTRY_TYPE::UNKNOWN;
         
-        u16 entryLength;
-        u16 offset = 11;
+    //     u16 entryLength;
+    //     u16 offset = 11;
 
-        entryLength = memory::find<12>(chunk+offset, __SETTINGS_SOH_CHAR);
-        entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
-        offset += entryLength + 4; // |55=
+    //     entryLength = memory::find<12>(chunk+offset, __SETTINGS_SOH_CHAR);
+    //     entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
+    //     offset += entryLength + 4; // |55=
 
-        entryLength = (end - begin) - offset;
-        entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
-    }
+    //     entryLength = size - offset;
+    //     entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
+    // }
 
 }
 
@@ -102,123 +102,99 @@ struct Decoder{
 
 private:
 
+    inline void create_insert_order_inc(const char* chunk, u16 entryIdx, u16 size);
+
+    inline void create_remove_order_inc(const char* chunk, u16 entryIdx, u16 size);
+
     template<DECODE_TYPE T> __attribute__((optimize("unroll-loops")))
     inline void decode_algorithm(const char* data, const u32 data_size, const u32 num_entries);
 
 public:
-    u8 index_filter[128];
-    u16 market_indices_begin[ 128 * 4 ];
-    u16 market_indices_end[ 128 * 4 ];
-    decode_data<DATA_TYPE::MARKET_DATA> market_data[128];
+    u8 index_filter[32];
+    u16 market_indices_begin[ 32 * 2 ] = { 0 };
+    u16 market_indices_end[ 32 * 2 ] = { 0 };
+    decode_data<DATA_TYPE::MARKET_DATA> market_data[32];
 
 };
 
 template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(const char* data, const u32 data_size, const u32 num_entries){
     using namespace ctrader::tools;
-    static constexpr u8 base_skip_size_lookup[4] = {50U, 4U, 26U, 4U};
-    static constexpr u16 market_indices_offset[4] = { 0, 128, 256, 384 }; 
+  
+    // Setup variables
     static constexpr char pattern[32] = __DECODE_GEN_PATTERN(279);
-
+    u32 type, mask_1, mask_2, mask_3, offset_1, offset_2, offset_3, i;
+    i32 state_1, idx_seek;
+    
     // Precalculate first entry (always starts at i=0)
-    u32 message_type = ( data[5] - '0' );
-    market_indices_begin[market_indices_offset[message_type] + 0] = 0;
-    u32 absolute_offset = base_skip_size_lookup[message_type];
-    u32 old_message_type = message_type;
-    u32 mi_idx = 1;
+    type = ( data[5] - '0' );
+    mask_1 = 0 - op::eq(type, 2); 
+    market_indices_begin[ (32 & mask_1) + 1 ] = 0;
 
-    // Handle vectorized market_indices calculations
-    for(u32 i=0; i<num_entries; i++){
-        // Offset calculations
-        i32 is_vectorizable = numbers::op::lte( (absolute_offset + 32U), data_size);
-        u32 is_vectorizable_mask = 0 - is_vectorizable;
+    offset_1 = 50 - (25 & mask_1);
+    mask_3 = mask_1;
+    offset_3 = 2;
 
-        u32 chunk_start = absolute_offset & is_vectorizable_mask;
-        u32 search_idx = memory::find_pattern_begin(data+chunk_start, pattern);
+    // Vectoried search operation
+    while( numbers::op::lte( (offset_1 + 32U), data_size) ){    
+        // Check if pattern is found
+        idx_seek = memory::find_pattern_begin(data+offset_1, pattern);
+        state_1 = op::gte(idx_seek, 0);
+        mask_1 = 0 - state_1;
 
-        i32 is_found = numbers::op::gte(search_idx, 0);
-        u32 is_found_and_vectorizable_mask = 0 - (is_found & is_vectorizable);
+        // If found: Get message type Else: Set type to default.
+        offset_2 = (offset_1 + idx_seek);
+        type = ( data[ (offset_2 & mask_1) + 5 ] - '0' );
+        mask_2 = 0 - op::eq(type, 2); 
 
-        u32 relative_offset = (search_idx - 1U) & is_found_and_vectorizable_mask;
-        u32 new_message_type = ((( data[chunk_start  + relative_offset + 5U] - '0' ) + ( (is_found ^ 1) | (is_vectorizable ^ 1) )));
+        // If found: Insert in market_indices_begin/end[idx_begin/end] Else: Ignore (insert in market_indices_begin/end[0]) 
+        market_indices_begin[ ((32 & mask_2) + offset_3) & mask_1 ] = offset_2;
+        market_indices_end[ ((32 & mask_3) + (offset_3 - 1)) & mask_1 ] = offset_2; 
+        mask_3 = mask_2;
+        offset_3 += state_1;
 
-        u32 insert_value = absolute_offset + relative_offset;
-        u32 skip_size = (base_skip_size_lookup[new_message_type] + relative_offset) & is_vectorizable_mask;
-        absolute_offset += skip_size;
-
-        // Insert calculations
-        u32 new_mi_idx = mi_idx;
-        u32 old_mi_idx = (new_mi_idx-1);
-
-        market_indices_begin[market_indices_offset[new_message_type] + new_mi_idx] = insert_value;
-        market_indices_end[market_indices_offset[old_message_type] + old_mi_idx] = insert_value;
-
-        old_message_type = new_message_type;
-        mi_idx += (is_found & is_vectorizable);
+        // Calc skip size
+        offset_1 += ((4 & ~mask_1) + ((25 + (25 & ~mask_2) + idx_seek) & mask_1));  
     }
 
     // Handle last part of market_indices
-    u32 end_size = data_size - absolute_offset;
-    u32 padding_size = 32U - end_size;
+    idx_seek = memory::find_pattern_begin(data+offset_1, pattern);
+    offset_2 = offset_1 + idx_seek;
 
-    u32 search_idx = memory::find_pattern_begin(data+(absolute_offset-padding_size), pattern);
+    type = ( data[ offset_2 + 5 ] - '0' );
+    mask_1 = 0 - op::eq(type, 2); 
 
-    i32 is_found = numbers::op::gte( search_idx, 0);
-    u32 is_found_mask = 0 - is_found;
+    market_indices_begin[ ((32 & mask_1) + offset_3) ] = offset_2;
+    market_indices_end[ ((32 & mask_3) + (offset_3 - 1)) ] = offset_2; 
+    market_indices_end[ ((32 & mask_1) + offset_3) ] = data_size;
 
-    u32 relative_offset = (absolute_offset + ((search_idx - 1U) - padding_size)) & is_found_mask;
-    u32 new_message_type = ( data[relative_offset + 5] - '0' ) + (is_found ^ 1U);
-    
-    u32 new_mi_idx = mi_idx;
-    u32 old_mi_idx = (new_mi_idx-1);
-    
-    market_indices_begin[market_indices_offset[new_message_type] + new_mi_idx] = relative_offset;
-    market_indices_end[market_indices_offset[old_message_type] + old_mi_idx] = relative_offset;
-    market_indices_end[market_indices_offset[new_message_type] + new_mi_idx] = data_size;
-
-    // Filter out found index ranges and stores in temporary array
-    u32 idx = 0, count_insert = 0, count_remove = 0;
-
-    // idx_insert = 2 4 6 8 10 ... num_entries
-    for (u32 i = 0; i < num_entries; i++){
-        const i32 begin_insert = market_indices_begin[i];
-        const i32 end_insert = market_indices_end[i];
-        
-        i32 result_state_insert = numbers::op::ne(begin_insert, end_insert); 
-        u32 result_state_insert_mask = 0 - result_state_insert;
-
-        idx += result_state_insert;
-        count_insert += result_state_insert;
-
-        index_filter[ idx & result_state_insert_mask ] = i;
+    // Filter out incorrect entries to index_filter
+    offset_1 = offset_2 = 0;
+    for(i=1; i<num_entries+1; i++){
+        state_1 = numbers::op::ne( market_indices_begin[i], market_indices_end[i] );
+        mask_1 = 0 - state_1; offset_1 += state_1; 
+        index_filter[ offset_1 & mask_1 ] = i;
     }
 
-    // idx_remove = 1 3 5 7 9 ... num_entries
-    idx = count_insert;
-    for (u32 i = 0; i < num_entries; i++){
-        const i32 begin_remove = market_indices_begin[256 + i];
-        const i32 end_remove = market_indices_end[256 + i];
-
-        i32 result_state_remove = numbers::op::ne(begin_remove, end_remove); 
-        u32 result_state_remove_mask = 0 - result_state_remove;
-
-        idx += result_state_remove;
-        count_remove += result_state_remove;
-
-        index_filter[ idx & result_state_remove_mask ] = i;
-    }
-    
-    for(u32 i=0; i<count_insert; i++){
-        const u16 idx = index_filter[i+1];
-        const u16 begin_offset = market_indices_begin[idx];
-        const u16 end_offset = market_indices_end[idx];
-        create_insert_order_inc(data+begin_offset, market_data[i], begin_offset, end_offset);
+    for(i=1; i<num_entries+1; i++){
+        state_1 = numbers::op::ne( market_indices_begin[32+i], market_indices_end[32+i] );
+        mask_1 = 0 - state_1; offset_2 += state_1; 
+        index_filter[ (offset_1 + offset_2) & mask_1 ] = i;
     }
 
-    for(u32 i=count_insert; i<num_entries; i++){
-        const u16 idx = index_filter[i+1];
-        const u16 begin_offset = market_indices_begin[256 + idx];
-        const u16 end_offset = market_indices_end[256 + idx];
-        create_remove_order_inc(data+begin_offset, market_data[i], begin_offset, end_offset);
+    // Create market data from filtered entries index_filter 
+    for(i=1; i<offset_1+1; i++){
+        idx_seek = index_filter[i];
+        mask_1 = market_indices_begin[idx_seek];
+        mask_2 = market_indices_end[idx_seek];
+        create_insert_order_inc(data+mask_1, i-1, (mask_2 - mask_1));
+    }
+
+    for(i=1; i<offset_2+1; i++){
+        mask_3 = offset_1 + i;
+        idx_seek = 32 + index_filter[mask_3];
+        mask_1 = market_indices_begin[idx_seek];
+        mask_2 = market_indices_end[idx_seek];
+        create_remove_order_inc(data+mask_1, mask_3-1, (mask_2 - mask_1));
     }
 
 };
@@ -236,6 +212,61 @@ u32 Decoder::decode_any(const char* data){
 
     return 0;
 }
+
+void Decoder::create_insert_order_inc(const char* chunk, u16 entryIdx, u16 size){
+    using namespace ctrader::tools;
+    // example entry: |279=0|269=1|278=2291667248|55=1|270=1.08754|271=5000000
+    auto& entry = market_data[entryIdx];
+
+    entry.UpdateAction = UPDATE_ACTION::NEW;
+    entry.EntryType = static_cast<ENTRY_TYPE>( chunk[11] - '0' );
+    
+    u32 entryLengthMask, offset; 
+    i32 entryLength1, entryLength2, entryLength3;
+
+    entryLengthMask = memory::find_mask<32>(chunk+17, __SETTINGS_SOH_CHAR);
+
+    entryLength1 = __builtin_ctz(entryLengthMask);
+    entryLengthMask >>= entryLength1 + 4;
+
+    entryLength2 = __builtin_ctz(entryLengthMask);
+    entryLengthMask >>= entryLength2 + 5;
+
+    entryLength3 = __builtin_ctz(entryLengthMask);
+
+    offset = 17+entryLength1+4+entryLength2+5;
+
+    entry.EntryPrice.from_cstr(chunk+offset, entryLength3);
+    entry.EntryId = numbers::to_num<i64>(chunk+17, entryLength1);
+    entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+17+entryLength1+4, entryLength2));
+
+    offset += entryLength3+5; // |271= ... |
+    entry.EntrySize = numbers::to_num<i64>(chunk+offset, size - offset);
+};
+
+void Decoder::create_remove_order_inc(const char* chunk, u16 entryIdx, u16 size){
+    using namespace ctrader::tools;
+    // example entry: |279=2|278=2291666392|55=1
+    auto& entry = market_data[entryIdx];
+
+    entry.UpdateAction = UPDATE_ACTION::DELETE;
+    entry.EntryType = ENTRY_TYPE::UNKNOWN;
+    
+    u16 entryLength;
+    u16 offset = 11;
+
+    entryLength = memory::find<12>(chunk+offset, __SETTINGS_SOH_CHAR);
+    entry.EntryId = numbers::to_num<i64>(chunk+offset, entryLength);
+    offset += entryLength + 4; // |55=
+
+    entryLength = size - offset;
+    entry.Symbol = static_cast<SYMBOL>(numbers::to_num<u64>(chunk+offset, entryLength));
+}
+
+
+
+
+
 
 
 

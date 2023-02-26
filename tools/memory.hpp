@@ -35,6 +35,9 @@ namespace {
     template<EXEC_TYPE T>
     inline u32 _find_end( const char* buff, const char c );
 
+    template<EXEC_TYPE T>
+    inline u32 _find_mask( const char* buff, const char c );
+
     template<> u32 _find<EXEC_TYPE::AVX>( const char* buff, const char c ){
         __m128i haystack_vec = _mm_load_si128( reinterpret_cast<const __m128i*>(buff) );
         const __m128i needle_vec = _mm_set1_epi8(c);
@@ -79,6 +82,22 @@ namespace {
         u32 trailing_size = __builtin_ctz(result_mask + result_mask_is_invalid);
 
         return trailing_size;
+    } 
+
+    template<> u32 _find_mask<EXEC_TYPE::AVX>( const char* buff, const char c ){
+        __m128i haystack_vec = _mm_load_si128( reinterpret_cast<const __m128i*>(buff) );
+        const __m128i needle_vec = _mm_set1_epi8(c);
+        __m128i result_vec = _mm_cmpeq_epi8(haystack_vec, needle_vec);
+
+        return _mm_movemask_epi8(result_vec);
+    } 
+
+    template<> u32 _find_mask<EXEC_TYPE::AVX2>( const char* buff, const char c ){
+        __m256i haystack_vec = _mm256_load_si256( reinterpret_cast<const __m256i*>(buff) );
+        const __m256i needle_vec = _mm256_set1_epi8(c);
+        __m256i result_vec = _mm256_cmpeq_epi8(haystack_vec, needle_vec);
+
+        return _mm256_movemask_epi8(result_vec);
     } 
 
 }
@@ -129,10 +148,13 @@ namespace ctrader::tools::memory {
     template<u32 MAX_SEEK_SIZE, EXEC_TYPE T = get_exec_type_epi8(MAX_SEEK_SIZE)>
     inline u32 find_end( const char* buff, const char c ){ return _find_end<T>(buff, c); }
 
+    template<u32 MAX_SEEK_SIZE, EXEC_TYPE T = get_exec_type_epi8(MAX_SEEK_SIZE)>
+    inline u32 find_mask( const char* buff, const char c ) { return _find_mask<T>(buff, c); }
+
     // Optimization of EPSMA-1 algorithm which can find patterns in the entire 32 byte chunk instead of only the first 8 bytes. 
     // This does force you to perform (max_index / 8) + 1 permutations. 
     template <u32 MAX_SEEK_SIZE, u32 PERMUTES = min_permutes(MAX_SEEK_SIZE, 8)>
-    inline u32 find_pattern_full(const char* chunk, const char* pattern){
+    inline i32 find_pattern_full(const char* chunk, const char* pattern){
         __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
         __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
         __m256i sad_vec, found_matches;
@@ -141,7 +163,8 @@ namespace ctrader::tools::memory {
         const __m256i permute = _mm256_setr_epi32(2, 3, 4, 5, 6, 7, 1, 0);
 
         i32 match_mask = 0, match_mask_is_valid = 0;
-        u32 idx = 0, offset = 0, match_mask_is_valid_mask = 0, trail_count = 0;
+        i32 idx = 0, trail_count = 0, offset = 0;
+        u32 match_mask_is_valid_mask = 0;
 
         for(u32 i=0; i<PERMUTES; i++){
             sad_vec = _mm256_mpsadbw_epu8(chunk_vec, pattern_vec, 0);
@@ -158,7 +181,7 @@ namespace ctrader::tools::memory {
             chunk_vec = _mm256_permutevar8x32_epi32(chunk_vec, permute);
         }
 
-        return idx;
+        return idx - 1;
     };
 
     // Based on EPSMA-1 algorithm but in this version you only need to perform a single permutation for the first 8 bytes vs `len_of_pattern` permutations
@@ -167,7 +190,7 @@ namespace ctrader::tools::memory {
     //      * This is because in the future I will port my probability distribution function which will calculate correct skip_sizes (see 'decode_algorithm()')
     //        based on previously computed indices. This will ensure that the pattern will majority of the time be within the first 8 - 'len_of_pattern' when searching for it
     //        meaning only a single permutation is needed not 'len_of_pattern' permutations. 
-    inline u32 find_pattern_begin(const char* chunk, const char* pattern){
+    inline i32 find_pattern_begin(const char* chunk, const char* pattern){
         __m256i chunk_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(chunk) );
         __m256i pattern_vec = _mm256_loadu_si256( reinterpret_cast<const __m256i*>(pattern) );
         const __m256i zero_mask = _mm256_setzero_si256();
@@ -178,10 +201,10 @@ namespace ctrader::tools::memory {
         i32 match_mask = _mm256_movemask_epi8(found_matches);
         i32 match_mask_is_invalid = op::lte(match_mask, 0);
 
-        u32 trail_count = __builtin_ctz(match_mask + match_mask_is_invalid) >> 1;
-        u32 idx = trail_count + (match_mask_is_invalid ^ 1);
+        i32 trail_count = __builtin_ctz(match_mask + match_mask_is_invalid) >> 1;
+        i32 idx = trail_count + (match_mask_is_invalid ^ 1);
 
-        return idx;
+        return idx - 1;
     };
 
 
