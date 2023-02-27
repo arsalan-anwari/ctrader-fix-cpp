@@ -2,7 +2,6 @@
 
 #include "types/numbers.hpp"
 
-
 namespace ctrader::types::symbol {
     using namespace ctrader::types::numbers;
 

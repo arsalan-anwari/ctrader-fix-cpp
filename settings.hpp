@@ -10,9 +10,10 @@ namespace ctrader::settings {
     constexpr u8           HearthBeatIntervalSec = 30;
     constexpr u8           MsgSeqNumDigitSize = 18; // range {1 ... 18}
     constexpr u8           KeySize = 6;
+    constexpr u8           DecodeBufferSize = 32; 
    
     #define __SETTINGS_SOH_STR "|"
-    #define __SETTINGS_SOH_CHAR '|'
+    #define __SETTINGS_SOH '|'
 
     namespace broker {
 

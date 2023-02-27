@@ -9,10 +9,10 @@ namespace ctrader::types::concepts {
     concept is_32byte_alignable = SIZE % 32 == 0;
 
     template<auto SIZE, auto MIN>
-    concept is_minimum_size = SIZE >= MIN;
+    concept is_min_size = SIZE >= MIN;
 
     template<auto SIZE, auto MAX>
-    concept is_smaller_than = SIZE < MAX;
+    concept is_max_size = SIZE <= MAX;
 
     template<auto VAL>
     concept is_power_of_2 = (VAL > 0) && !(VAL & (VAL - 1));

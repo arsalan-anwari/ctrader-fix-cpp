@@ -119,7 +119,7 @@ namespace ctrader::tools::memory {
         }
     };
 
-    template<std::size_t SIZE, u8 REM = SIZE % 32> requires is_minimum_size<SIZE, 32>
+    template<std::size_t SIZE, u8 REM = SIZE % 32> requires is_min_size<SIZE, 32>
     inline void memcpy_32u(char* dst, const char* src){
 
         for(u8 i=0; i < REM; i++){ dst[i] = src[i]; }
