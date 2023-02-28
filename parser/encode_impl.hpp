@@ -13,6 +13,7 @@
 #include "settings.hpp"
 
 namespace ctrader::parser::encode_impl {
+    
     using namespace ctrader::types::encode;
     using namespace ctrader::types::symbol;
     using namespace ctrader::tools;

@@ -7,6 +7,9 @@
 namespace ctrader::settings {
     using namespace ctrader::types::numbers;
 
+    #define __SETTINGS_ENABLE 1
+    #define __SETTINGS_DISABLE 1
+
     constexpr u8           HearthBeatIntervalSec = 30;
     constexpr u8           MsgSeqNumDigitSize = 18; // range {1 ... 18}
     constexpr u8           KeySize = 6;
@@ -14,6 +17,7 @@ namespace ctrader::settings {
    
     #define __SETTINGS_SOH_STR "|"
     #define __SETTINGS_SOH '|'
+    #define __SETTINGS_ALLOW_RESTRICTIONS __SETTINGS_ENABLE
 
     namespace broker {
 

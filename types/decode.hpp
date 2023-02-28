@@ -15,16 +15,17 @@ namespace ctrader::types::decode {
     using namespace ctrader::types::decimal;
     using namespace ctrader::types::symbol;
 
-    enum class UPDATE_ACTION : u32 { NEW, UNKNOWN, DELETE };
+    enum class UPDATE_ACTION : u8 { NEW, UNKNOWN, DELETE };
 
-    enum class ENTRY_TYPE : u32 { BID, OFFER, UNKNOWN };
+    enum class ENTRY_TYPE : u8 { BID, OFFER, UNKNOWN };
 
-    enum class DECODE_TYPE: u32 {
+    enum class DECODE_TYPE: u8 {
+        UNKNOWN,
         MARKET_DATA_SNAPSHOT,
         MARKET_DATA_INCREMENTAL
     };
 
-    enum class DATA_TYPE: u32 {
+    enum class DATA_TYPE: u8 {
         MARKET_DATA,
         QUOTE_DATA
     };
