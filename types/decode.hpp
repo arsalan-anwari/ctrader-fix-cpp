@@ -32,8 +32,7 @@ namespace ctrader::types::decode {
 
     template <DATA_TYPE T> struct decode_data {};
 
-    template<>
-    struct decode_data<DATA_TYPE::MARKET_DATA> {
+    template<> struct decode_data<DATA_TYPE::MARKET_DATA> {
         UPDATE_ACTION UpdateAction = UPDATE_ACTION::UNKNOWN;
         ENTRY_TYPE EntryType = ENTRY_TYPE::UNKNOWN;
         SYMBOL Symbol = SYMBOL::UNKNOWN;

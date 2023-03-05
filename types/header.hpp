@@ -2,11 +2,12 @@
 
 #include "settings.hpp"
 
-namespace ctrader::data::header {
+namespace ctrader::types::header {
 
-    namespace internal {
+    using namespace ctrader::settings;
+    
+    namespace {
 
-        using namespace ctrader::settings;
         using namespace ctrader::types::numbers; 
     
 
@@ -37,8 +38,8 @@ namespace ctrader::data::header {
 
     } // internal
 
-    constexpr auto HeaderBuffSize = internal::calc_header_size();
-    constexpr auto HeaderRemainderSize = internal::calc_header_remainder_size(HeaderBuffSize);
+    constexpr auto HeaderBuffSize = calc_header_size();
+    constexpr auto HeaderRemainderSize = calc_header_remainder_size(HeaderBuffSize);
 
     struct header_t {
         union {
@@ -46,9 +47,9 @@ namespace ctrader::data::header {
                 char BeginString[ 2 + 7 ]; // 8=FIX.4.4
                 char BodyLength[3 + 3]; // |9=???
                 char MsgType[4 + 1]; // |35=?
-                char MsgSeqNum[4 + ctrader::settings::MsgSeqNumDigitSize]; // |34={0:MsgSeqNumDigitSize}
+                char MsgSeqNum[4 + MsgSeqNumDigitSize]; // |34={0:MsgSeqNumDigitSize}
                 char timestamp_32a[32]; // |52=SendingTimeFormat|49=
-                char SenderCompID[ ctrader::settings::broker_settings::SenderCompID.size() ]; // SenderCompID
+                char SenderCompID[ broker_settings::SenderCompID.size() ]; // SenderCompID
                 char TargetCompID[ 4 + 7 ]; // |56=cServer
                 char TargetSubID[4 + 5]; // |57={QUOTE?TRADE}
             } field;
@@ -56,4 +57,4 @@ namespace ctrader::data::header {
         };
     };
 
-} // ctrader::data::header
+} // ctrader::types::header

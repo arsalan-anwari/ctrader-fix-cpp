@@ -112,7 +112,7 @@ namespace ctrader::tools::memory {
     template<std::size_t SIZE> requires is_32byte_alignable<SIZE>
     inline void memcpy_32a(char* dst, const char* src){
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
-            _mm256_store_si256(
+            _mm256_storeu_si256(
                 reinterpret_cast<__m256i*>(dst+offset),
                 _mm256_load_si256( reinterpret_cast<__m256i const*>(src+offset) )
             );
@@ -125,7 +125,7 @@ namespace ctrader::tools::memory {
         for(u8 i=0; i < REM; i++){ dst[i] = src[i]; }
 
         for(std::size_t offset = 0; offset <= SIZE - 32; offset += 32) {
-            _mm256_store_si256(
+            _mm256_storeu_si256(
                 reinterpret_cast<__m256i*>(dst+offset+REM),
                 _mm256_load_si256( reinterpret_cast<__m256i const*>(src+offset+REM) )
             );
@@ -135,7 +135,7 @@ namespace ctrader::tools::memory {
 
     inline void memcpy_32(char* dst, const char* src){
         
-            _mm256_store_si256(
+            _mm256_storeu_si256(
                 reinterpret_cast<__m256i*>(dst),
                 _mm256_load_si256( reinterpret_cast<__m256i const*>(src) )
             );

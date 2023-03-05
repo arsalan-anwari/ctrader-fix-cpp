@@ -11,7 +11,7 @@ namespace ctrader::tools::datetime {
 
     #define __DATE_TIME_MASK __SETTINGS_SOH_STR "52=00000000-00:00:00.000000" __SETTINGS_SOH_STR "49="
 
-    inline void current_timestamp_from_offset( char* out ){
+    inline void current_timestamp( char* out ){
         using namespace std::chrono;
         using namespace ctrader::tools;
         

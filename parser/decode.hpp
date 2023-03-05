@@ -11,7 +11,6 @@ using namespace ctrader::types::symbol;
 struct Decoder{
 
     template<DECODE_TYPE D = DECODE_TYPE::UNKNOWN> u32 decode(const char* data);
-    //u32 decode_any(const char* data);
 
 private:
 
@@ -23,7 +22,7 @@ private:
     void decode_algorithm(const char* data, const u32 data_size, const u32 num_entries);
 
 public:
-    u8 index_filter[ DecodeBufferSize ];
+    u8 index_filter[ DecodeBufferSize ] = { 0 };
     u16 market_indices_begin[ DecodeBufferSize * 2 ] = { 0 };
     u16 market_indices_end[ DecodeBufferSize * 2 ] = { 0 };
     decode_data<DATA_TYPE::MARKET_DATA> market_data[ DecodeBufferSize ];
