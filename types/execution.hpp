@@ -10,4 +10,8 @@ namespace ctrader::types::execution {
         SCALAR, AVX, AVX2, AVX512
     };
 
+    enum class BUFF_TYPE : u8 {
+        MIN, SMALL, MEDIUM, LARGE, MAX
+    };
+
 }

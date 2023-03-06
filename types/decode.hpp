@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string_view>
+#include <array>
 
 #include "types/numbers.hpp"
 #include "types/decimal.hpp"
@@ -41,4 +41,7 @@ namespace ctrader::types::decode {
         i64 EntrySize = -1;
     };
     
+    template <DATA_TYPE T> 
+    using DATA_BUFF = std::array< decode_data<T>, DecodeBufferSize >; 
+
 }

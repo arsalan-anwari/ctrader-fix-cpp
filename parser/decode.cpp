@@ -3,20 +3,19 @@
 #include "tools/numbers.hpp"
 #include "settings.hpp"
 
-namespace ctrader::parser::decode{
-
+namespace {
     using namespace ctrader::settings;
 
     #define __DECODE_GEN_PATTERN(pattern) __SETTINGS_SOH_STR #pattern
 
-    #define __DECODE_CASE(TYPE) \
+    #define __DECODE_CASE(TYPE) {\
         const u32 msg_seq_num_digit_size = memory::find<20>(data+12+msg_size_digit_size+9, __SETTINGS_SOH);\
         const u32 header_size = get_message_header_size(msg_seq_num_digit_size);\
         const u32 data_size = numbers::to_num(data+12, msg_size_digit_size) - header_size - 7;\
         const u32 offset = ( 12U + msg_size_digit_size + header_size );\
         const u32 num_entries = numbers::to_num(data + offset + 5, memory::find<4>(data + offset + 5, __SETTINGS_SOH));\
         decode_algorithm<TYPE>(data + offset + 7, data_size, num_entries);\
-        return num_entries;\
+        return num_entries; }\
 
     static inline u32 get_message_header_size(const u32 msg_seq_num_digit_size){
         return ( 
@@ -27,7 +26,14 @@ namespace ctrader::parser::decode{
         );
     }
 
-    template<> void Decoder::insert_entry<DECODE_TYPE::MARKET_DATA_INCREMENTAL, UPDATE_ACTION::NEW>(const char* chunk, u8 entryIdx, u8 size){
+    static consteval bool is_power_of_two( u16 value ){ return (value > 0) && !(value & (value - 1)); }
+}
+
+namespace ctrader::parser::decode{
+
+    Decoder::Decoder(){ static_assert ( is_power_of_two(ctrader::settings::DecodeBufferSize), "ERROR: Value `DecodeBufferSize` in `settings.hpp` must be power of 2!" ); }
+
+    template<> void Decoder::insert_entry<DECODE_TYPE::MARKET_DATA_INCREMENTAL, UPDATE_ACTION::NEW>(const char* chunk, u16 entryIdx, u16 size){
         using namespace ctrader::tools;
         // example entry: |279=0|269=1|278=0000002291667248|55=00000000000000000001|270=0000000001.08754|271=5000000
         auto& entry = market_data[entryIdx];
@@ -78,7 +84,7 @@ namespace ctrader::parser::decode{
 
     };
 
-    template<> void Decoder::insert_entry<DECODE_TYPE::MARKET_DATA_INCREMENTAL, UPDATE_ACTION::DELETE>(const char* chunk, u8 entryIdx, u8 size){
+    template<> void Decoder::insert_entry<DECODE_TYPE::MARKET_DATA_INCREMENTAL, UPDATE_ACTION::DELETE>(const char* chunk, u16 entryIdx, u16 size){
         using namespace ctrader::tools;
         // example entry: |279=2|278=2291666392|55=1
         auto& entry = market_data[entryIdx];
@@ -97,14 +103,15 @@ namespace ctrader::parser::decode{
     }
 
     template<> void Decoder::decode_algorithm<DECODE_TYPE::MARKET_DATA_INCREMENTAL>(
-        const char* data, const u32 data_size, const u32 num_entries
+        const char* data, const u32 data_size, const u16 num_entries
     ){
         using namespace ctrader::tools;
   
         // Setup variables
         static constexpr char pattern[32] = __DECODE_GEN_PATTERN(279);
-        u32 type, mask_1, mask_2, mask_3, offset_1, offset_2, offset_3, i;
+        u32 type, mask_1, mask_2, mask_3, offset_1, offset_2, offset_3;
         i32 state_1, idx_seek;
+        u16 i;
         
         // Precalculate first entry (always starts at i=0)
         type = ( data[5] - '0' );
@@ -180,7 +187,7 @@ namespace ctrader::parser::decode{
 
     };
 
-    template<DECODE_TYPE T> u32 Decoder::decode(const char* data){
+    template<DECODE_TYPE T> u16 Decoder::decode(const char* data){
         using namespace ctrader::tools;
         const u32 msg_size_digit_size = memory::find<5>(data+12, __SETTINGS_SOH);
         const u32 msg_seq_num_digit_size = memory::find<20>(data+12+msg_size_digit_size+9, __SETTINGS_SOH);
@@ -193,19 +200,28 @@ namespace ctrader::parser::decode{
         return num_entries;
     }  
 
-    template<> u32 Decoder::decode<DECODE_TYPE::UNKNOWN>(const char* data){
+    template<> u16 Decoder::decode<DECODE_TYPE::UNKNOWN>(const char* data){
         using namespace ctrader::tools;
         const u32 msg_size_digit_size = memory::find<5>(data+12, __SETTINGS_SOH);
         const char msg_type = data[12 + msg_size_digit_size + 4];
 
         switch(msg_type){
-            case 'X': { __DECODE_CASE(DECODE_TYPE::MARKET_DATA_INCREMENTAL) }
+            case 'X': __DECODE_CASE(DECODE_TYPE::MARKET_DATA_INCREMENTAL)
         }
 
         return 0;
     }
 
+    template<DATA_TYPE T> DATA_BUFF<T> const& Decoder::get_decode_data() const{
+        if constexpr( T == DATA_TYPE::MARKET_DATA ){ return market_data; }
+        else { return quote_data; }
+    }
 
+
+// explicit template specialization to prevent linker to complain it cannot find the functions. 
+
+    template DATA_BUFF<DATA_TYPE::MARKET_DATA> const& Decoder::get_decode_data() const;
+    template DATA_BUFF<DATA_TYPE::QUOTE_DATA> const& Decoder::get_decode_data() const;
 }
 
 namespace {

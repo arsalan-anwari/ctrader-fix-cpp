@@ -4,7 +4,7 @@
 
 #include "encode.hpp"
 
-#include "data/message_data.hpp"
+#include "tools/message_data.hpp"
 #include "types/encode.hpp"
 #include "types/symbol.hpp"
 
@@ -17,7 +17,7 @@
 
 namespace ctrader::parser::encode {
 
-    using namespace ctrader::data::message_data;
+    using namespace ctrader::tools::message_data;
     using namespace ctrader::types::encode;
     using namespace ctrader::types::symbol;
     using namespace ctrader::tools;

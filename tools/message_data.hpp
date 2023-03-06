@@ -6,7 +6,7 @@
 #include "settings.hpp"
 #include "types/message.hpp"
 
-namespace ctrader::data::message_data {
+namespace ctrader::tools::message_data {
     
     using namespace ctrader::types::message;
     using namespace ctrader::types::body;
@@ -89,25 +89,4 @@ namespace ctrader::data::message_data {
     }
 
 
-    // namespace quote {
-    //     using namespace ctrader::types::encode;
-
-    //     constinit auto LOGON = internal::new_message_from_type<ENCODE_TYPE::LOGON>(CONN_TYPE::QUOTE);
-    //     constinit auto TEST_REQ = internal::new_message_from_type<ENCODE_TYPE::TEST_REQ>(CONN_TYPE::QUOTE);
-    //     constinit auto MD_REQ_SUB_DEPTH = internal::new_message_from_type<ENCODE_TYPE::MD_REQ_SUB_DEPTH>(CONN_TYPE::QUOTE);
-    // } // quote 
-
-    // namespace trade {
-    //     using namespace ctrader::types::encode;
-
-    //     constinit auto LOGON = internal::new_message_from_type<ENCODE_TYPE::LOGON>(CONN_TYPE::TRADE);
-    //     constinit auto TEST_REQ = internal::new_message_from_type<ENCODE_TYPE::TEST_REQ>(CONN_TYPE::TRADE);
-    // } // trade 
-
- 
-
-    
-
-
-
-} // ctrader::data::message_data
+} // ctrader::tools::message_data
