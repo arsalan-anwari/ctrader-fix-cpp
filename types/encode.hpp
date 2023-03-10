@@ -2,21 +2,32 @@
 
 #include <string_view>
 #include "types/numbers.hpp"
+#include "tools/macros.hpp"
 
 namespace ctrader::types::encode {
     
     using namespace ctrader::types::numbers;
 
     enum class ENCODE_TYPE : u8 {
-        TEST_REQ,
-        LOGON, 
-        MD_REQ_SUB_DEPTH, MD_REQ_SUB_SPOT, MD_REQ_UNSUB_DEPTH, MD_REQ_UNSUB_SPOT, 
+        HEART_BEAT, TEST_REQ,
+        LOGON, LOGOUT, RESEND_REQ,
+        MD_REQ_SINGLE, MD_REQ_MULTIPLE
     };
 
     constexpr char ENCODE_CHAR[] = {
-        '1', 
-        'A', 
-        'V', 'V', 'V', 'V'
+        '0', '1', 
+        'A', '5', '2',
+        REPEAT_LIST('V', 2)
+    };
+
+    enum class MD_REQ_SUB_TYPE : char {
+        SUBSCRIBE = '1',
+        UNSUBSCRIBE = '2'
+    };
+
+    enum class MD_REQ_DEPTH_TYPE : char {
+        FULL_DEPTH = '0',
+        SPOT_PRICE = '1'
     };
 
     enum class CONN_TYPE : u8 {

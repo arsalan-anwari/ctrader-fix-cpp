@@ -23,15 +23,22 @@ struct Encoder {
         msg_seq_num -= is_decrementable;
     };
     inline __attribute__((always_inline)) void reset_seq_num() { msg_seq_num = 1; };
-    inline __attribute__((always_inline)) i64 get_seq_num() { return msg_seq_num; };
+    inline __attribute__((always_inline)) u64 get_seq_num() { return msg_seq_num; };
 
     template<ENCODE_TYPE M> message_t<M> const& get_message_buff() const;
 
 private:
-    i64 msg_seq_num = 1;
-    message_t<ENCODE_TYPE::LOGON> LOGON;
+    u64 msg_seq_num = 1;
+    message_t<ENCODE_TYPE::HEART_BEAT> HEART_BEAT;
     message_t<ENCODE_TYPE::TEST_REQ> TEST_REQ;
-    message_t<ENCODE_TYPE::MD_REQ_SUB_DEPTH> MD_REQ_SUB_DEPTH;
+
+    message_t<ENCODE_TYPE::LOGON> LOGON;
+    message_t<ENCODE_TYPE::LOGOUT> LOGOUT;
+    message_t<ENCODE_TYPE::RESEND_REQ> RESEND_REQ;
+
+    message_t<ENCODE_TYPE::MD_REQ_SINGLE> MD_REQ_SINGLE;
+    //message_t<ENCODE_TYPE::MD_REQ_DEPTH> MD_REQ_DEPTH;
+
 
     template <CONN_TYPE> friend struct Encoder;
 
