@@ -20,12 +20,12 @@ namespace ctrader::types::encode {
         REPEAT_LIST('V', 2)
     };
 
-    enum class MD_REQ_SUB_TYPE : char {
+    enum class SUB_TYPE : char {
         SUBSCRIBE = '1',
         UNSUBSCRIBE = '2'
     };
 
-    enum class MD_REQ_DEPTH_TYPE : char {
+    enum class DEPTH_TYPE : char {
         FULL_DEPTH = '0',
         SPOT_PRICE = '1'
     };
