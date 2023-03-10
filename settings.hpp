@@ -13,7 +13,7 @@ namespace ctrader::settings {
     constexpr u8           HearthBeatIntervalSec = 30;
     constexpr u8           MsgSeqNumDigitSize = 20; // range {1 ... 20}
     constexpr u8           KeySize = 6;
-    constexpr u16          DecodeBufferSize = 32; 
+    //constexpr u16          DecodeBufferSize = 32; 
    
     #define __SETTINGS_SOH_STR "|"
     #define __SETTINGS_SOH '|'

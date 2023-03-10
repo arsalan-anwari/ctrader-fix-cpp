@@ -41,7 +41,7 @@ namespace ctrader::types::decode {
         i64 EntrySize = -1;
     };
     
-    template <DATA_TYPE T> 
-    using DATA_BUFF = std::array< decode_data<T>, DecodeBufferSize >; 
+    template <DATA_TYPE T, u16 N> 
+    using DATA_BUFF = std::array< decode_data<T>, N >; 
 
 }
