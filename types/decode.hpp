@@ -1,47 +1,50 @@
 #pragma once
 
-#include <array>
+#include "numbers.hpp"
+#include "symbol.hpp"
 
-#include "types/numbers.hpp"
-#include "types/decimal.hpp"
-#include "types/symbol.hpp"
+namespace ctrader {
+namespace decode {
 
-#include "settings.hpp"
-
-namespace ctrader::types::decode {
-
-    using namespace ctrader::settings;
-    using namespace ctrader::types::numbers;
-    using namespace ctrader::types::decimal;
-    using namespace ctrader::types::symbol;
-
-    enum class UPDATE_ACTION : u8 { NEW, UNKNOWN, DELETE };
-
-    enum class ENTRY_TYPE : u8 { BID, OFFER, UNKNOWN };
-
-    enum class DECODE_TYPE: u8 {
-        UNKNOWN,
-        MARKET_DATA_SNAPSHOT,
-        MARKET_DATA_INCREMENTAL
+    enum class md_action : u8 {
+        insert = 0,
+        remove = 2,
+        undefined = 0
     };
 
-    enum class DATA_TYPE: u8 {
-        MARKET_DATA,
-        QUOTE_DATA
+    enum class md_type : u8 {
+        bid = 0,
+        offer = 1,
+        undefined = 0
     };
 
-    template <DATA_TYPE T> struct decode_data {};
-
-    template<> struct decode_data<DATA_TYPE::MARKET_DATA> {
-        UPDATE_ACTION UpdateAction = UPDATE_ACTION::UNKNOWN;
-        ENTRY_TYPE EntryType = ENTRY_TYPE::UNKNOWN;
-        SYMBOL Symbol = SYMBOL::UNKNOWN;
-        i64 EntryId = -1;
-        f32 EntryPrice = f32{};
-        i64 EntrySize = -1;
+    enum class request : u8 {
+        market_data_req,
+        new_order,
+        undefined
     };
-    
-    template <DATA_TYPE T, u16 N> 
-    using DATA_BUFF = std::array< decode_data<T>, N >; 
 
+    template<request T>
+    struct request_data {};
+
+    template<> struct request_data<request::market_data_req> {
+        md_action update_action = md_action::undefined;
+        md_type entry_type = md_type::undefined;
+        u64 entry_id = 0;
+        symbol symbol = symbol::undefined;
+        float entry_price = -1.0f;
+        u64 entry_size = 0;
+    };
+
+    struct range_t {
+        u8 min; 
+        u8 max;
+    };
+
+    constexpr range_t symbol_skip_sizes[] = {
+        {0, 0},
+        {25, 50}
+    };
+
+}
 }

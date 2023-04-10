@@ -4,37 +4,31 @@
 
 #include "types/numbers.hpp"
 
-namespace ctrader::settings {
-    using namespace ctrader::types::numbers;
+namespace ctrader {
 
-    #define __SETTINGS_ENABLE 1
-    #define __SETTINGS_DISABLE 1
+	namespace settings {
 
-    constexpr u8           HearthBeatIntervalSec = 30;
-    constexpr u8           MsgSeqNumDigitSize = 20; // range {1 ... 20}
-    constexpr u8           KeySize = 6;
-    //constexpr u16          DecodeBufferSize = 32; 
-   
-    #define __SETTINGS_SOH_STR "|"
-    #define __SETTINGS_SOH '|'
-    #define __SETTINGS_ALLOW_RESTRICTIONS __SETTINGS_ENABLE
+		constexpr ctrader::u8 MAX_SEQ_NUM_DIGITS = 19;
+		constexpr ctrader::u8 MAX_REQ_ID_DIGITS = 7;
 
-    namespace broker {
+		constexpr std::string_view SOH = "|";
+		constexpr char SOH_CHAR = '|';
+		constexpr std::string_view HEARTBEAT_SEC = "30";
+		constexpr std::string_view DATE_TIME_MASK = "|52=00000000-00:00:00.000000|49=";
 
-        namespace ic_markets_demo {
+		constexpr bool SSE_AVAILABLE = true;
+		constexpr bool AVX_AVAILABLE = true;
+		constexpr bool AVX2_AVAILABLE = true;
+		constexpr bool AVX512_AVAILABLE = false;
 
-            constexpr std::string_view  Username = "8536054";
-            constexpr std::string_view  Password = "RGZC9bBP68VqyAY";
-            constexpr std::string_view  SenderCompID = "demo.icmarkets.8536054";
-            
-        } // ic_markets_demo
+		namespace broker {
+			constexpr std::string_view USER_NAME = "8536054";
+			constexpr std::string_view PASSWORD = "RGZC9bBP68VqyAY";
+			constexpr std::string_view SENDER_COMP_ID = "demo.icmarkets.8536054";
 
-    } // broker
-
-    namespace broker_settings = ctrader::settings::broker::ic_markets_demo;
-
-} // ctrader::settings
+		} // ctrader::settings::broker
 
 
+	} // ctrader::settings
 
-
+} // ctrader

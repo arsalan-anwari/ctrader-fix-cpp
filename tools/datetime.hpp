@@ -1,38 +1,42 @@
 #pragma once
 
 #include <chrono>
+#include <string_view>
+#include <format>
+#include <cstring>
+#include <span>
 
-#include "tools/memory.hpp"
-#include "tools/numbers.hpp"
-#include "settings.hpp"
+#include "strings.hpp"
+#include "type_converter.hpp"
+#include "../types/concepts.hpp"
+#include "../settings.hpp"
 
-namespace ctrader::tools::datetime {
-    using namespace ctrader::settings;
+namespace ctrader {
+	
+	template<size_t BuffSize, u8 Offset> requires concepts::is_min_size<BuffSize+Offset, 24>
+	inline void utc_now(std::span<char> out, std::string_view zero_buff) {
+		using namespace std::chrono;
 
-    #define __DATE_TIME_MASK __SETTINGS_SOH_STR "52=00000000-00:00:00.000000" __SETTINGS_SOH_STR "49="
+		// get current datetime from systemclock
+		auto now = system_clock::now();
+		auto local_time = local_days{} + (now - sys_days{});
+		auto local_time_in_days = std::chrono::floor<days>(local_time);
 
-    inline void current_timestamp( char* out ){
-        using namespace std::chrono;
-        using namespace ctrader::tools;
-        
-        auto now = system_clock::now();
-        auto local_time = local_days{} + (now - sys_days{});
-        auto local_time_in_days = std::chrono::floor<days>(local_time);
+		year_month_day ymd{ local_time_in_days };
+		hh_mm_ss hms{ local_time - local_time_in_days };
 
-        year_month_day ymd{local_time_in_days};
-        hh_mm_ss hms{local_time-local_time_in_days};
-        
-        // clear buffer with zeros to allow signle digits to be represented correct as '05' vs 'n5'
-        memory::memcpy_32(out, __DATE_TIME_MASK); 
+		// clear buffer
+		strcpy<BuffSize>(out, zero_buff);
 
-        numbers::to_string(out+4, out+8, int{ymd.year()});
-        numbers::to_string(out+8, out+10, unsigned{ymd.month()});
-        numbers::to_string(out+10, out+12, unsigned{ymd.day()});
+		// copy content from systemclock to buffer		
+		to_chars<2, Offset + 0>(out, int{ ymd.year() });
+		to_chars<2, Offset + 4>(out, unsigned{ ymd.month() });
+		to_chars<2, Offset + 6>(out, unsigned{ ymd.day() });
 
-        numbers::to_string(out+13, out+15, hms.hours().count());
-        numbers::to_string(out+16, out+18, hms.minutes().count());
-        numbers::to_string(out+19, out+21, hms.seconds().count());
-        numbers::to_string(out+22, out+28, duration_cast<microseconds>(hms.subseconds()).count());
-    }
+		to_chars<2, Offset + 9>(out, hms.hours().count());
+		to_chars<2, Offset + 12>(out, hms.minutes().count());
+		to_chars<2, Offset + 15>(out, hms.seconds().count());
+		to_chars<6, Offset + 18>(out, duration_cast<microseconds>(hms.subseconds()).count());
+	}
 
-} //ctrader::tools::datetime
+}

@@ -1,23 +1,18 @@
 #pragma once
 
-#include "types/numbers.hpp"
+#include "numbers.hpp"
 
-namespace ctrader::types::symbol {
-    using namespace ctrader::types::numbers;
+namespace ctrader {
 
-    enum class SYMBOL : u64 {
-        UNKNOWN = 0UL,
-        EUR_USD = 1UL
-    };
+	enum class symbol : u64 {
+		undefined = 0,
+		eur_usd = 1
+	};
 
-    constexpr u8 SYMBOL_DIGIT_SIZE[] = {
-        1, 1
-    };
+	constexpr u8 SYMBOL_DIGIT_SIZE[] = {
+		1U, 
+		1U
+	};
 
-    const char* const SYMBOL_STRING[] = {
-        "0", "1"
-    };   
-
-    
 
 }
