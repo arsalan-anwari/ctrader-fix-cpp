@@ -6,10 +6,12 @@
 #include "types/numbers.hpp"
 #include "decoder/decode_method.hpp"
 
+#include "types/concepts.hpp"
+
 namespace ctrader {
 namespace decode {
 
-    template<u8 MaxEntries> 
+    template<u8 MaxEntries> requires concepts::is_power_of_2<MaxEntries>
     class decoder {
     public:
 

@@ -26,7 +26,7 @@ namespace ctrader {
 		hh_mm_ss hms{ local_time - local_time_in_days };
 
 		// clear buffer
-		strcpy<BuffSize>(out, zero_buff);
+		strcpy<BuffSize>(out.data(), zero_buff.data());
 
 		// copy content from systemclock to buffer		
 		to_chars<2, Offset + 0>(out, int{ ymd.year() });

@@ -54,15 +54,15 @@ namespace encode {
 		) {
 			prepare_header(msg_seq_num, buff);
 
-			strcpy<settings::MAX_REQ_ID_DIGITS>(
-				std::span<char>(buff.body.entry.md_req_id.value),
-				req_id
+			strcpy<static_cast<unsigned>(settings::MAX_REQ_ID_DIGITS)>(
+				buff.body.entry.md_req_id.value,
+				req_id.data()
 			);
 
 			buff.body.entry.subscription_req_type.value[0] = static_cast<char>(subs);
 			buff.body.entry.market_depth.value[0] = static_cast<char>(depth);
 
-			to_chars(std::span<char>(buff.body.entry.symbol.value), static_cast<size_t>(sym));
+			to_chars(std::span<char>(buff.body.entry.symbol.value), static_cast<u64>(sym));
 			
 			prepare_footer(buff);
 		}

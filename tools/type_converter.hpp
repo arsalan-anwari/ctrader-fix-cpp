@@ -5,7 +5,7 @@
 
 namespace ctrader {
 
-    template<size_t Offset = 0>
+    template<unsigned Offset = 0>
     inline constexpr void to_chars(std::span<char> begin, std::integral auto x) {
         char* end = begin.data() + Offset + begin.size();
         do {
@@ -14,7 +14,7 @@ namespace ctrader {
         } while (x != 0);
     };
 
-    template<size_t Size, size_t Offset = 0>
+    template<unsigned Size, unsigned Offset = 0>
     inline constexpr void to_chars(std::span<char> begin, std::integral auto x) {
         char* end = begin.data() + Offset + Size;
         do {
@@ -22,6 +22,14 @@ namespace ctrader {
             x /= 10;
         } while (x != 0);
     };
+
+    inline constexpr void to_chars(char*, char* end, std::integral auto x) {
+        do {
+            *--end = static_cast<char>((x % 10) + '0');
+            x /= 10;
+        } while (x != 0);
+    };
+
 
     template<typename T> requires std::unsigned_integral<T>
     inline T to_unsigned_integral(const char* buff, const T size) {

@@ -16,7 +16,7 @@ namespace {
         std::memcpy(dst, src, size);
     }
 
-    template<size_t NumPermutes = 1>
+    template<unsigned NumPermutes = 1>
     inline void strcpy_avx(char* dst, const char* src) {
         for (size_t i = 0; i < NumPermutes; i++) {
             _mm_storeu_si128(
@@ -27,7 +27,7 @@ namespace {
         }
     }
 
-    template<size_t NumPermutes = 1>
+    template<unsigned NumPermutes = 1>
     inline void strcpy_avx2(char* dst, const char* src) {
         for (size_t i = 0; i < NumPermutes; i++) {
             _mm256_storeu_si256(
@@ -42,7 +42,7 @@ namespace {
         return std::accumulate(src, src + size, 0);
     }
 
-    template<size_t NumPermutes = 1>
+    template<unsigned NumPermutes = 1>
     inline u32 ascii_sum_avx(const char* src) {
 
         const __m128i mask_low = _mm_set1_epi32(0x000000ff);
@@ -73,7 +73,7 @@ namespace {
             static_cast<u32>(_mm_extract_epi32(accum, 3));
     }
 
-    template<size_t NumPermutes = 1>
+    template<unsigned NumPermutes = 1>
     inline u32 ascii_sum_avx2(const char* src) {
         const __m256i zero = _mm256_setzero_si256();
         __m256i accum = zero;
@@ -96,78 +96,78 @@ namespace {
 
 namespace ctrader {
 
-    //template<
-    //    size_t Size,
-    //    exec_policy Policy = policy_from_max_stride_epi8<Size>(),
-    //    size_t UnalignableSize = unaligned_size_from_stride<Size, Policy>(),
-    //    size_t AlignableSize = Size - UnalignableSize
-    //> requires concepts::is_min_size<Size, 1>
-    //    inline void strcpy(std::span<char> dst, std::string_view src) {
+    template<
+        size_t Size,
+        exec_policy Policy = policy_from_min_size_epi8(Size),
+        size_t UnalignableSize = unaligned_size_from_stride_epi8(Size, Policy),
+        size_t AlignableSize = Size - UnalignableSize
+    > 
+    inline void strcpy(char* dst, const char* src) {
 
-    //    if constexpr (Policy == exec_policy::avx) {
+        if constexpr (Policy == exec_policy::avx) {
 
-    //        strcpy_scalar(dst.data(), src.data(), UnalignableSize);
-    //        strcpy_avx<
-    //            num_permutes_from_stride<AlignableSize, Policy>()
-    //        >(dst.data() + UnalignableSize, src.data() + UnalignableSize);
+            strcpy_scalar(dst, src, UnalignableSize);
+            strcpy_avx<
+                permutations_from_stride_epi8(AlignableSize, stride_from_policy_epi8(Policy))
+            >(dst + UnalignableSize, src + UnalignableSize);
 
-    //    }
+        }
 
-    //    else if constexpr (Policy == exec_policy::avx2) {
+        else if constexpr (Policy == exec_policy::avx2) {
 
-    //        // AVX copy is slightly faster than scalar copy, as you can move 16 bytes in one clock cycle.
-    //        if constexpr (UnalignableSize >= 16) {
-    //            strcpy_avx(dst.data(), src.data());
-    //            strcpy_scalar(dst.data() + 16, src.data() + 16, UnalignableSize - 16);
-    //        }
-    //        else {
-    //            strcpy_scalar(dst.data(), src.data(), UnalignableSize);
-    //        }
+            // AVX copy is slightly faster than scalar copy, as you can move 16 bytes in one clock cycle.
+            if constexpr (UnalignableSize >= 16) {
+                strcpy_avx(dst, src);
+                strcpy_scalar(dst + 16, src + 16, UnalignableSize - 16);
+            }
+            else {
+                strcpy_scalar(dst, src, UnalignableSize);
+            }
 
-    //        strcpy_avx2<
-    //            num_permutes_from_stride<AlignableSize, Policy>()
-    //        >(dst.data() + UnalignableSize, src.data() + UnalignableSize);
+            strcpy_avx2<
+                permutations_from_stride_epi8(AlignableSize, stride_from_policy_epi8(Policy))
+            >(dst + UnalignableSize, src + UnalignableSize);
 
-    //    }
+        }
 
-    //    else {
-    //        strcpy_scalar(dst.data(), src.data(), Size);
-    //    }
-    //};
+        else {
+            strcpy_scalar(dst, src, Size);
+        }
+    };
 
-    //template<
-    //    size_t Size,
-    //    exec_policy Policy = policy_from_max_stride_epi8<Size>(),
-    //    size_t UnalignableSize = unaligned_size_from_stride<Size, Policy>(),
-    //    size_t AlignableSize = Size - UnalignableSize
-    //> requires concepts::is_min_size<Size, 1>
-    //inline u32 ascii_sum(std::string_view src) {
-    //    u32 total = 0;
+    template<
+        size_t Size,
+        exec_policy Policy = policy_from_min_size_epi8(Size),
+        size_t UnalignableSize = unaligned_size_from_stride_epi8(Size, Policy),
+        size_t AlignableSize = Size - UnalignableSize
+    >
+    inline u32 ascii_sum(const char* src) {
+        u32 total = 0;
 
-    //    if constexpr (Policy == exec_policy::avx) {
+        if constexpr (Policy == exec_policy::avx) {
 
-    //        total += ascii_sum_scalar(src.data(), UnalignableSize);
-    //        total += ascii_sum_avx<
-    //            num_permutes_from_stride<AlignableSize, Policy>()
-    //        >(src.data() + UnalignableSize);
+            total += ascii_sum_scalar(src, UnalignableSize);
+            total += ascii_sum_avx<
+                permutations_from_stride_epi8(AlignableSize, stride_from_policy_epi8(Policy))
+            >(src + UnalignableSize);
 
-    //    }
+        }
 
-    //    else if constexpr (Policy == exec_policy::avx2) {
+        else if constexpr (Policy == exec_policy::avx2) {
 
-    //        // scalar sum is faster for size < 32. AVX/AVX2 sum is only faster for continious range > 32
-    //        total += ascii_sum_scalar(src.data(), UnalignableSize);
-    //        total += ascii_sum_avx2<
-    //            num_permutes_from_stride<AlignableSize, Policy>()
-    //        >(src.data());
-    //    }
+            // scalar sum is faster for size < 32. AVX/AVX2 sum is only faster for continious range > 32
+            total += ascii_sum_scalar(src, UnalignableSize);
+            total += ascii_sum_avx2<
+                permutations_from_stride_epi8(AlignableSize, stride_from_policy_epi8(Policy))
+            >(src);
+        }
 
-    //    else {
-    //        total += ascii_sum_scalar(src.data(), Size);
-    //    }
+        else {
+            total += ascii_sum_scalar(src, Size);
+        }
 
-    //    return total;
+        return total;
 
-    //};
+    };
 
 }
