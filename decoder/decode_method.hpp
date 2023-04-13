@@ -33,12 +33,12 @@ namespace decode{
 
             // Search for beginning of 'NoMDEntries' tag and get number of entries.
             // Offset message by 'NoMDEntries' to start from first 'MDUpdateAction' tag. 
-            const i32 pos = find<19U, 4U>(msg.data(), std::format("{}268", settings::SOH).c_str() );
-            msg = msg.substr(pos, msg.size()-pos);
-            const auto [num_entries, entry_digit_size] = get_num_entries(msg.substr(5, 4));
+            const i32 num_entries_offset = find<19U, 4U>(msg.data(), std::format("{}268", settings::SOH).c_str() );
+            msg = msg.substr(num_entries_offset, msg.size()-num_entries_offset);
+            const auto [num_entries, num_entries_digit_size] = get_num_entries(msg.substr(5, 4));
 
             // Move request To first occurance of md_action tag '|279='. 
-            msg = msg.substr(5 + entry_digit_size, msg.size() - (5 + entry_digit_size));
+            msg = msg.substr(5 + num_entries_digit_size, msg.size() - (5 + num_entries_digit_size));
 
             // Find which symbol this message resolves to, to determine correct skip_sizes for the hardware optimized
             // pattern searching routine. The size of this first chunk is unknown so a regular scalar operation needs
@@ -92,11 +92,11 @@ namespace decode{
 
             }
             else {
-
+              
                 search_offset = static_cast<u32>(msg.find(std::format("{}279", settings::SOH), 0));
                 for (u32 i = 0; i < num_entries; i++) {
-                    entry_indices[insert_idx++] = pos;
-                    search_offset = static_cast<u32>(msg.find(std::format("{}279", settings::SOH), pos + 1));
+                    entry_indices[insert_idx++] = search_offset;
+                    search_offset = static_cast<u32>(msg.find(std::format("{}279", settings::SOH), search_offset + 1));
                 }
 
                 // Post fill last known entry index to be msg_size. 

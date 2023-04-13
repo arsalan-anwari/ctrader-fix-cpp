@@ -16,9 +16,9 @@ namespace ctrader {
 		constexpr std::string_view HEARTBEAT_SEC = "30";
 		constexpr std::string_view DATE_TIME_MASK = "|52=00000000-00:00:00.000000|49=";
 
-		constexpr bool SSE_AVAILABLE = true;
-		constexpr bool AVX_AVAILABLE = true;
-		constexpr bool AVX2_AVAILABLE = true;
+		constexpr bool SSE_AVAILABLE = false;
+		constexpr bool AVX_AVAILABLE = false;
+		constexpr bool AVX2_AVAILABLE = false;
 		constexpr bool AVX512_AVAILABLE = false;
 
 		namespace broker {
