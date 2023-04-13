@@ -5,7 +5,8 @@
 
 namespace ctrader {
 
-	enum class message : u8 {
+	enum class request : u8 {
+		undefined,
 		heart_beat, 
 		test_req, 
 		logon, 
@@ -13,14 +14,18 @@ namespace ctrader {
 		resend_req, 
 		reject, 
 		seq_reset,
-		market_data_snapshot, 
-		market_data_incremental,
 		market_data_req, 
-		new_order,
-		undefined
+		new_order
 	};
 
-	constexpr std::string_view MESSAGE_NAME[] = {
+	enum class response : u8 {
+		undefined,
+		market_data_snapshot,
+		market_data_incremental
+	};
+
+	constexpr std::string_view REQUEST_NAME [] = {
+		"Undefined Request"
 		"Heartbeat", 
 		"Test Request",
 		"Logon", 
@@ -28,14 +33,18 @@ namespace ctrader {
 		"Resend Request", 
 		"Reject", 
 		"Sequence Reset",
-		"Market Data Snapshot/Full Refresh", 
-		"Market Data Incremental Refresh",
 		"Market Data Request", 
 		"New Order Single",
-		"Undefined Message"
 	};
 
-	constexpr std::string_view MESSAGE_ID_VAL[] = {
+	constexpr std::string_view RESPONSE_NAME [] = {
+		"Undefined Response",
+		"Market Data Snapshot/Full Refresh",
+		"Market Data Incremental Refresh"
+	};
+
+	constexpr std::string_view REQUEST_ID_VAL [] = {
+		"?"
 		"0", 
 		"1",
 		"A", 
@@ -43,11 +52,14 @@ namespace ctrader {
 		"2", 
 		"3", 
 		"4",
-		"W", 
-		"X",
 		"V", 
 		"D",
-		"?"
+	};
+
+	constexpr std::string_view RESPONSE_ID_VAL[] = {
+		"?",
+		"W",
+		"X"
 	};
 
 }

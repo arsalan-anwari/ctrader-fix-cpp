@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "../numbers.hpp"
-#include "../../tools/json_formatter.hpp"
+#include "../../tools/format.hpp"
 
 namespace ctrader {
 
@@ -23,7 +23,7 @@ namespace ctrader {
 		friend std::ostream& operator<<(std::ostream& os, const type& self) {
 			os << json_format::new_subgroup(
 				"Trailer",
-				json_format::new_group_list(
+				json_format::new_subgroup(
 					"Checksum",
 					json_format::new_list({
 						{"Tag", std::string(self.tag, sizeof(self.tag))},

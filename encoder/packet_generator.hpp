@@ -9,7 +9,7 @@
 #include "../types/packet.hpp"
 #include "../types/encode.hpp"
 #include "../types/packet/header.hpp"
-#include "../tools/type_converter.hpp"
+#include "../tools/convert.hpp"
 #include "../settings.hpp"
 
 namespace {
@@ -20,7 +20,7 @@ namespace {
 		std::string_view value;
 	};
 
-	template<message T>
+	template<request T>
 	consteval u16 calc_body_length(packet_t<T>& buff) {
 		const auto header_part = sizeof(buff.header.raw) - 
 			(sizeof(buff.header.entry.begin_string) + sizeof(buff.header.entry.body_length));
@@ -28,7 +28,7 @@ namespace {
 		return header_part + sizeof(buff.body.raw) + sizeof(buff.trailer.raw) - 2U;
 	};
 
-	template<message T>
+	template<request T>
 	consteval packet_t<T> new_packet_from_fields(
 		connection conn, std::initializer_list<field_t> body_fields
 	) {
@@ -43,7 +43,7 @@ namespace {
 		// instead of just passing a char* pointer... 
 		const std::array<field_t, 7> header_fields = {
 			field_t{"9", std::string({body_length[0], body_length[1], body_length[2]})},
-			field_t{"35", MESSAGE_ID_VAL[static_cast<u8>(T)]},
+			field_t{"35", REQUEST_ID_VAL[static_cast<u8>(T) - 1U]},
 			field_t{"34", std::string(settings::MAX_SEQ_NUM_DIGITS, '0')},
 			field_t{"52", std::string(24, '0')},
 			field_t{"49", settings::broker::SENDER_COMP_ID},
@@ -78,7 +78,7 @@ namespace {
 namespace ctrader {
 namespace encode {
 
-	template<message T>
+	template<request T>
 	consteval auto new_packet(connection conn) {
 		return new_packet_from_fields<T>(conn, {
 			{"112", std::string("TEST")}
@@ -86,8 +86,8 @@ namespace encode {
 	};
 
 	template<> consteval auto 
-	new_packet<message::logon>(connection conn) {
-		return new_packet_from_fields<message::logon>(conn, {
+	new_packet<request::logon>(connection conn) {
+		return new_packet_from_fields<request::logon>(conn, {
 			{"98", "0"},
 			{"108", settings::HEARTBEAT_SEC},
 			{"141", "Y"},
@@ -97,8 +97,8 @@ namespace encode {
 	};
 
 	template<> consteval auto
-	new_packet<message::market_data_req>(connection conn) {
-		return new_packet_from_fields<message::market_data_req>(conn, {
+	new_packet<request::market_data_req>(connection conn) {
+		return new_packet_from_fields<request::market_data_req>(conn, {
 			{"262", std::string(settings::MAX_REQ_ID_DIGITS, '0')},
 			{"263", "0"},
 			{"264", "0"},

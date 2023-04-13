@@ -7,7 +7,7 @@
 
 namespace ctrader {
 
-	template<message T>
+	template<request T>
 	struct packet_t {
 		using type = packet_t<T>;
 
@@ -22,7 +22,7 @@ namespace ctrader {
 
 		friend std::ostream& operator<<(std::ostream& os, const type& self) {
 			os << '{'
-				<< json_format::new_tag("Message", std::string(MESSAGE_NAME[static_cast<u8>(T)])) << ','
+				<< json_format::new_tag("Message", std::string(REQUEST_NAME[static_cast<u8>(T)])) << ','
 				<< self.header << ',' << self.body << ',' << self.trailer
 			   << '}';
 			return os;

@@ -7,7 +7,7 @@
 
 namespace ctrader {
 
-	template<message T> struct body_t {
+	template<request T> struct body_t {
 		using type = body_t<T>;
 		union {
 			struct {
@@ -22,8 +22,8 @@ namespace ctrader {
 		}
 	};
 
-	template<> struct body_t<message::logon> {
-		using type = body_t<message::logon>;
+	template<> struct body_t<request::logon> {
+		using type = body_t<request::logon>;
 		union {
 			struct {
 				entry_t<2, 1, "EncryptMethod"> encrypt_method;
@@ -47,8 +47,8 @@ namespace ctrader {
 		}
 	};
 
-	template<> struct body_t<message::market_data_req> {
-		using type = body_t<message::market_data_req>;
+	template<> struct body_t<request::market_data_req> {
+		using type = body_t<request::market_data_req>;
 		union {
 			struct {
 				entry_t<3, settings::MAX_REQ_ID_DIGITS, "MDReqID"> md_req_id;
@@ -81,8 +81,8 @@ namespace ctrader {
 	};
 
 	
-	//template<> struct body_t<message::market_data_req> {
-	//	using type = body_t<message::market_data_req>;
+	//template<> struct body_t<request::market_data_req> {
+	//	using type = body_t<request::market_data_req>;
 	//	union {
 	//		struct {
 	//			

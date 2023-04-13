@@ -11,7 +11,7 @@
 namespace {
 	using namespace ctrader;
 
-	template<message Tm>
+	template<request Tm>
 	inline void prepare_header(u64 msg_seq_num, packet_t<Tm>& buff) {
 		to_chars(
 			std::span<char>(buff.header.entry.msg_seq_num.value),
@@ -21,7 +21,7 @@ namespace {
 		utc_now<32, 4>(std::span<char>(buff.header.entry.sending_time.raw), settings::DATE_TIME_MASK);
 	}
 
-	template<message Tm>
+	template<request Tm>
 	inline void prepare_footer(packet_t<Tm>& buff) {
 		const u32 checksum = ascii_sum<sizeof(buff.data) - 7>(buff.data) % 256;
 		std::memset(buff.trailer.value, '0', 3);
@@ -32,7 +32,7 @@ namespace {
 namespace ctrader{
 namespace encode {
 
-	template<connection Tc, message Tm>
+	template<connection Tc, request Tm>
 	struct encode_method {
 		packet_t<Tm> buff = encode::new_packet<Tm>(Tc);
 		void prepare(u64 msg_seq_num) {
@@ -42,8 +42,8 @@ namespace encode {
 	};
 
 	template<connection Tc>
-	struct encode_method<Tc, message::market_data_req> {
-		packet_t<message::market_data_req> buff = encode::new_packet<message::market_data_req>(Tc);
+	struct encode_method<Tc, request::market_data_req> {
+		packet_t<request::market_data_req> buff = encode::new_packet<request::market_data_req>(Tc);
 
 		void prepare(
 			u64 msg_seq_num,
@@ -70,7 +70,7 @@ namespace encode {
 	};
 
 	//template<connection Tc>
-	//struct encode_method<message::logon> {
+	//struct encode_method<request::logon> {
 
 	//};
 

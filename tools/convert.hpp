@@ -30,7 +30,6 @@ namespace ctrader {
         } while (x != 0);
     };
 
-
     template<typename T> requires std::unsigned_integral<T>
     inline T to_unsigned_integral(const char* buff, const T size) {
         u64 value = 0;

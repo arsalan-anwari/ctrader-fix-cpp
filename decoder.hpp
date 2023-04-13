@@ -15,23 +15,23 @@ namespace decode {
     class decoder {
     public:
 
-        template<message T = message::undefined>
-        auto decode(const char* msg) {
+        template<response T = response::undefined>
+        std::tuple<response, u8> decode(const char* msg) {
             const auto [body_length, body_offset] = get_body_meta(msg);
         
-            if constexpr (T == message::market_data_incremental) {
-                u8 num_entries = market_data_decoder.decode_incremental(std::string_view(msg+body_offset, body_length));
-                return std::tuple<message, u8>({ message::market_data_incremental, num_entries });
+            if constexpr (T == response::market_data_incremental) {
+                u8 num_entries = market_data_incremental.decode(std::string_view(msg+body_offset, body_length));
+                return { response::market_data_incremental, num_entries };
             }
             else {
-                return std::tuple<message, u8>({ message::undefined, 0U });
+                return { response::undefined, 0U };
             }
         }
 
-        template<request R>
-        std::array<request_data<R>, MaxEntries> const& get_request_data() const {
-            if constexpr (R == request::market_data_req) {
-                return market_data_decoder.market_data;
+        template<response R>
+        std::array<response_data<R>, MaxEntries> const& get_response() const {
+            if constexpr (R == response::market_data_incremental) {
+                return market_data_incremental.market_data;
             }
         }
 
@@ -51,7 +51,7 @@ namespace decode {
             return { static_cast<u16>(message_size - (body_offset - (12U + message_size_digit_size)) - 9U), static_cast<u16>(body_offset) };
         }
 
-        decode_method<MaxEntries, request::market_data_req> market_data_decoder;
+        decode_method<MaxEntries, response::market_data_incremental> market_data_incremental;
 
     };
 

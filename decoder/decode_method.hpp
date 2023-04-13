@@ -10,21 +10,22 @@
 #include "../types/decode.hpp"
 #include "../tools/bitwise.hpp"
 #include "../tools/find.hpp"
-#include "../tools/type_converter.hpp"
+#include "../tools/convert.hpp"
 #include "../settings.hpp"
+
 
 
 namespace ctrader {
 namespace decode{
 
-    template<u8 BufferSize, request R>
+    template<u8 BufferSize, response R>
     struct decode_method {};
 
     template<u8 BufferSize>
-    struct decode_method<BufferSize, request::market_data_req> {
-        std::array<request_data<request::market_data_req>, BufferSize> market_data;
+    struct decode_method<BufferSize, response::market_data_incremental> {
+        std::array<response_data<response::market_data_incremental>, BufferSize> market_data;
     
-        u8 decode_incremental(std::string_view msg) {
+        u8 decode(std::string_view msg) {
             // Find the correct chunk_size depending on available cpu extentions or external hardware
             // Set correct array index offset for md_action::remove entries.
             static constexpr u32 stride = get_maximum_stride_epi8();
@@ -36,7 +37,7 @@ namespace decode{
             msg = msg.substr(pos, msg.size()-pos);
             const auto [num_entries, entry_digit_size] = get_num_entries(msg.substr(5, 4));
 
-            // Move message to first occurance of md_action tag '|279='. 
+            // Move request To first occurance of md_action tag '|279='. 
             msg = msg.substr(5 + entry_digit_size, msg.size() - (5 + entry_digit_size));
 
             // Find which symbol this message resolves to, to determine correct skip_sizes for the hardware optimized
@@ -44,7 +45,7 @@ namespace decode{
             // be to be performed to find with occurance of 'Symbol' tag. 
             const u32 symbol_offset = static_cast<u32>(msg.find(std::format("{}55", settings::SOH).c_str()));
             const symbol symbol_value = get_symbol(msg.substr(symbol_offset + 4, 20)); // xxxx...|270
-            const range_t skip_size = symbol_skip_sizes[static_cast<u64>(symbol_value)];
+            const range_t skip_size = SYMBOL_SKIP_SIZES[static_cast<u64>(symbol_value)];
 
             // Start inserting from index 1 as index 0 is reserved for error values
             u32 search_offset = 0;
@@ -52,7 +53,9 @@ namespace decode{
 
             if constexpr (stride > 1) {
                 // Keep looping untill message data cannot be aligned to stride anymore. 
-                while (bitwise::gte(msg.size() - search_offset, stride)) {
+                while (bitwise::gte(static_cast<i32>(msg.size() - search_offset), static_cast<i32>(stride))) {
+                    /*std::cout << "msg = " << msg.substr(search_offset, 32) << std::endl;*/
+                    
                     i32 new_entry_idx = find<stride, 2U>(
                         msg.data() + search_offset, std::format("{}279", settings::SOH).c_str()
                     );
@@ -70,8 +73,8 @@ namespace decode{
                     search_offset += (
                         (4U & ~new_entry_found_mask) +
                         (new_entry_found_mask & (
-                            (skip_size.max & ~is_remove_action_mask) +
-                            (skip_size.min & is_remove_action_mask)
+                            ((skip_size.end + new_entry_idx) & ~is_remove_action_mask) +
+                            ((skip_size.begin) & is_remove_action_mask)
                             ))
                         );
 
@@ -79,20 +82,21 @@ namespace decode{
 
                 // Check if last part could contain another entry. 
                 i32 new_entry_idx = static_cast<i32>(msg.find(std::format("{}279", settings::SOH).c_str(), search_offset));
-                u32 new_entry_found_mask = 0 - bitwise::ne(new_entry_idx, -1);
+                i32 new_entry_found = bitwise::ne(new_entry_idx, -1);
+                u32 new_entry_found_mask = 0 - new_entry_found;
                 u32 msg_found_offset = (search_offset + new_entry_idx) & new_entry_found_mask;
                 entry_indices[insert_idx & new_entry_found_mask] = msg_found_offset;
 
                 // Post fill last known entry index to be msg_size. 
-                entry_indices[num_entries + 2] = static_cast<u16>(msg.size());
+                entry_indices[insert_idx + new_entry_found] = static_cast<u16>(msg.size());
 
             }
             else {
 
-                auto pos = msg.find(std::format("{}279", settings::SOH), 0);
+                search_offset = static_cast<u32>(msg.find(std::format("{}279", settings::SOH), 0));
                 for (u32 i = 0; i < num_entries; i++) {
                     entry_indices[insert_idx++] = pos;
-                    pos = msg.find(std::format("{}279", settings::SOH), pos + 1);
+                    search_offset = static_cast<u32>(msg.find(std::format("{}279", settings::SOH), pos + 1));
                 }
 
                 // Post fill last known entry index to be msg_size. 
@@ -102,12 +106,12 @@ namespace decode{
 
             // Filter found entry indices based on its size to determine remove of insert action. 
             // Increment count if either found and insert in seperate filter buffer. 
-            const auto [insert_action_count, remove_action_count] = get_action_counts(num_entries, skip_size.max);
+            const auto [insert_action_count, remove_action_count] = get_action_counts(num_entries, skip_size.end);
             
             // Generate and insert differnt kind of market_data based on remove or insert action.  
             u32 market_data_insert_idx = 0;
             for (u32 i = 2; i <= insert_action_count*2; i+=2) {
-                new_incremental_entry_insert(
+                new_insert_entry(
                     msg.substr(action_filter[i], action_filter[i+1U] - action_filter[i]),
                     market_data_insert_idx++, 
                     symbol_value
@@ -115,7 +119,7 @@ namespace decode{
             }
 
             for (u32 i = 2; i <= remove_action_count * 2; i += 2) {
-                new_incremental_entry_remove(
+                new_remove_entry(
                     msg.substr(
                         action_filter[remove_action_offset + i],
                         action_filter[remove_action_offset + i + 1U] - action_filter[remove_action_offset + i]
@@ -151,7 +155,7 @@ namespace decode{
                 u32 end = entry_indices[i + 1];
                 u32 size = end - begin;
 
-                i32 is_valid_offset = bitwise::ne(size, 0) & bitwise::lte(begin, end);
+                i32 is_valid_offset = bitwise::ne(size, 0) & bitwise::lt(begin, end);
                 i32 is_remove_action = bitwise::lte(size, min_insert_action_size) & is_valid_offset;
                 u32 valid_offset_mask = 0 - is_valid_offset;
                 u32 remove_action_mask = 0 - is_remove_action;
@@ -179,7 +183,7 @@ namespace decode{
             return static_cast<symbol>(to_unsigned_integral<u64>(chunk.data(), symbol_digit_size));
         }
 
-        inline void new_incremental_entry_insert(std::string_view chunk, const u32 entry_idx, const symbol sym) {
+        inline void new_insert_entry(std::string_view chunk, const u32 entry_idx, const symbol sym) {
                 // example: |279=0|269=1|278=0000002291667248|55=00000000000000000001|270=0000000001.08754|271=5000000
                 auto& entry = market_data[entry_idx];
 
@@ -211,7 +215,7 @@ namespace decode{
                 // ...
         }
 
-        inline void new_incremental_entry_remove(std::string_view chunk, const u32 entry_idx, const symbol sym) {
+        inline void new_remove_entry(std::string_view chunk, const u32 entry_idx, const symbol sym) {
             // example: |279=2|278=2291666392|55=1
             auto& entry = market_data[entry_idx];
 

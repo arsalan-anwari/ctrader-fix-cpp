@@ -5,7 +5,7 @@
 
 #include "../message.hpp"
 #include "../strings.hpp"
-#include "../../tools/json_formatter.hpp"
+#include "../../tools/format.hpp"
 
 namespace ctrader {
 
@@ -24,7 +24,7 @@ namespace ctrader {
 		};
 
 		friend std::ostream& operator<<(std::ostream& os, const type& self) {
-			os << json_format::new_group_list(
+			os << json_format::new_subgroup(
 				Name.value, 
 				json_format::new_list( {
 					{"Tag", std::string(self.tag, TagSize)}, 
@@ -49,7 +49,7 @@ namespace ctrader {
 		};
 
 		friend std::ostream& operator<<(std::ostream& os, const type& self) {
-			os << json_format::new_group_list(
+			os << json_format::new_subgroup(
 				Name.value,
 				json_format::new_list({
 					{"Tag", std::string(self.tag, TagSize)},
