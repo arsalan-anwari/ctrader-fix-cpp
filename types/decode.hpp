@@ -2,6 +2,7 @@
 
 #include "numbers.hpp"
 #include "symbol.hpp"
+#include "price.hpp"
 
 namespace ctrader {
 namespace decode {
@@ -27,7 +28,7 @@ namespace decode {
         md_type entry_type = md_type::undefined;
         u64 entry_id = 0;
         symbol symbol = symbol::undefined;
-        float entry_price = -1.0f;
+        price_t entry_price;
         u64 entry_size = 0;
     };
 

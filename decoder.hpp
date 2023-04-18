@@ -40,11 +40,11 @@ namespace decode {
             // example: 8=FIX.4.4|9=1140|35=X|34=3|49=cServer|50=QUOTE|52=20230124-13:30:46.130|56=demo.icmarkets.8536054|262=b3j2b26|268=25
 
             const i32 message_size_digit_size = find<6U>(msg + 12U, settings::SOH_CHAR);
-            const u32 message_size = to_unsigned_integral<u32>(msg + 12U, message_size_digit_size);
+            const u32 message_size = to_integral<u32>(msg + 12U, message_size_digit_size);
 
             const u32 msg_seq_num_offset = 12U + message_size_digit_size + 9U; // 8=FIX.4.4|9=1128|35=X|34=
             const i32 msg_seq_num_digit_size = find<20U>(msg + msg_seq_num_offset, settings::SOH_CHAR);
-            const u32 msg_seq_num = to_unsigned_integral<u32>(msg + msg_seq_num_offset, msg_seq_num_digit_size);
+            const u32 msg_seq_num = to_integral<u32>(msg + msg_seq_num_offset, msg_seq_num_digit_size);
 
             const u32 body_offset = (msg_seq_num_offset + msg_seq_num_digit_size + 49U + static_cast<u32>(settings::broker::SENDER_COMP_ID.size()));
 

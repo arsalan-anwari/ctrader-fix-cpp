@@ -9,7 +9,7 @@ namespace ctrader {
 
     template<typename T> requires std::integral<T>
     inline constexpr T digit_count(T value) {
-        return (std::floor(std::log10(value))) + 1;
+        return static_cast<T>(std::floor(std::log10(value)) + 1U);
     }
 
 	consteval i32 ceil(float num) {

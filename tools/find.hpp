@@ -11,6 +11,7 @@
 #include "../types/numbers.hpp"
 #include "../types/concepts.hpp"
 
+// find_impl
 namespace {
 
     using namespace ctrader;
@@ -165,6 +166,31 @@ namespace {
 
 }
 
+// find_end_impl
+namespace {
+    using namespace ctrader;
+
+    inline i32 find_end_needle_scalar(std::string_view chunk, const char needle) {
+        return static_cast<i32>(chunk.rfind(needle));
+    }
+
+    inline i32 find_end_needle_avx(const char* chunk, const char needle) {
+        const __m128i needle_vec = _mm_set1_epi8(needle);
+        const __m128i haystack_vec = _mm_load_si128(reinterpret_cast<const __m128i*>(chunk));
+        const __m128i result_vec = _mm_cmpeq_epi8(haystack_vec, needle_vec);
+
+        u32 match_mask = ~(_mm_movemask_epi8(result_vec));
+
+        // 0xFF if mm != 0; 0x00 if mm == 0
+        i32 needle_found = bitwise::ne(match_mask, 0);
+        const u32 needle_found_mask = 0 - needle_found;
+
+        // {0...15} or -1 
+        return (std::countr_zero(match_mask) & needle_found_mask) - (needle_found ^ 1);
+    }
+
+}
+
 namespace ctrader{
 
     template<
@@ -207,6 +233,27 @@ namespace ctrader{
         if constexpr (Policy == exec_policy::avx2) {
             return find_needle_avx2<permutations_from_stride_epi8(Size, 32)>(text, needle);
         }
+
+        return -1;
+    };
+
+
+    template<
+        unsigned Size,
+        exec_policy Policy = policy_from_max_size_epi8(Size)
+    >
+    inline i32 find_end(const char* text, const char needle) {
+        if constexpr (Policy == exec_policy::scalar) {
+            return find_end_needle_scalar(std::string_view(text, Size), needle);
+        }
+
+        if constexpr (Policy == exec_policy::avx) {
+            return find_end_needle_avx(text, needle);
+        }
+
+        //if constexpr (Policy == exec_policy::avx2) {
+        //    return find_needle_avx2<permutations_from_stride_epi8(Size, 32)>(text, needle);
+        //}
 
         return -1;
     };

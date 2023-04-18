@@ -140,7 +140,7 @@ namespace decode{
         inline std::tuple<u32, u32> get_num_entries(std::string_view chunk) {
             const u32 entry_digit_size = static_cast<u32>(chunk.find(settings::SOH_CHAR));
 
-            return { to_unsigned_integral<u32>(chunk.data(), entry_digit_size), entry_digit_size };
+            return { to_integral<u32>(chunk.data(), entry_digit_size), entry_digit_size };
         }
 
         inline std::tuple<u32, u32> get_action_counts(const u32 num_entries, const u32 min_insert_action_size) {
@@ -155,7 +155,7 @@ namespace decode{
                 u32 end = entry_indices[i + 1];
                 u32 size = end - begin;
 
-                i32 is_valid_offset = bitwise::ne(size, 0) & bitwise::lt(begin, end);
+                i32 is_valid_offset = bitwise::ne(size, 0) & bitwise::lte(begin, end);
                 i32 is_remove_action = bitwise::lte(size, min_insert_action_size) & is_valid_offset;
                 u32 valid_offset_mask = 0 - is_valid_offset;
                 u32 remove_action_mask = 0 - is_remove_action;
@@ -180,7 +180,7 @@ namespace decode{
 
         inline symbol get_symbol(std::string_view chunk) {
             const u32 symbol_digit_size = find<20>(chunk.data(), settings::SOH_CHAR);
-            return static_cast<symbol>(to_unsigned_integral<u64>(chunk.data(), symbol_digit_size));
+            return static_cast<symbol>(to_integral<u64>(chunk.data(), symbol_digit_size));
         }
 
         inline void new_insert_entry(std::string_view chunk, const u32 entry_idx, const symbol sym) {
@@ -194,7 +194,7 @@ namespace decode{
                     chunk.substr(17U, 16U).data(), settings::SOH_CHAR
                 );
 
-                entry.entry_id = to_unsigned_integral<u64>(chunk.substr(17U, entry_idx_digit_count));
+                entry.entry_id = to_integral<u64>(chunk.substr(17U, entry_idx_digit_count));
                 entry.symbol = sym;
 
 
@@ -204,15 +204,15 @@ namespace decode{
                     settings::SOH_CHAR
                 );
 
+                to_price(entry.entry_price, chunk.substr(entry_price_offset, entry_price_digit_count));
+
                 u32 entry_size_offset = entry_price_offset + entry_price_digit_count + 5U;
                 u32 entry_size_digit_count = static_cast<u32>(chunk.size() - entry_size_offset);
                 
-                entry.entry_size = to_unsigned_integral<u64>(
+                entry.entry_size = to_integral<u64>(
                     chunk.substr(entry_size_offset, entry_size_digit_count)
                 );
 
-                // insert entry_price
-                // ...
         }
 
         inline void new_remove_entry(std::string_view chunk, const u32 entry_idx, const symbol sym) {
@@ -223,7 +223,7 @@ namespace decode{
 
             u32 entry_idx_digit_count = static_cast<u32>(chunk.size() - (11U + 4U + SYMBOL_DIGIT_SIZE[static_cast<u64>(sym)]));
 
-            entry.entry_id = to_unsigned_integral<u64>(chunk.substr(11U, 10U));
+            entry.entry_id = to_integral<u64>(chunk.substr(11U, 10U));
             entry.symbol = sym;
         }
 
