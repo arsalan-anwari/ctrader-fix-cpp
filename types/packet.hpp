@@ -15,16 +15,13 @@ namespace ctrader {
 			struct {
 				header_t header;
 				body_t<T> body;
-				trailer_t trailer;
+				entry_t<entry_type_t::end> trailer;
 			};
-			char data[sizeof(header_t) + sizeof(body_t<T>) + sizeof(trailer_t)] = { 0 };
+			char data[sizeof(header_t) + sizeof(body_t<T>) + sizeof(entry_t<entry_type_t::end>) = {0};
 		};
 
 		friend std::ostream& operator<<(std::ostream& os, const type& self) {
-			os << '{'
-				<< json_format::new_tag("Message", std::string(REQUEST_NAME[static_cast<u8>(T)])) << ','
-				<< self.header << ',' << self.body << ',' << self.trailer
-			   << '}';
+			os << header << body << trailer;
 			return os;
 		}
 

@@ -13,12 +13,10 @@ namespace {
 
 	template<request Tm>
 	inline void prepare_header(u64 msg_seq_num, packet_t<Tm>& buff) {
-		to_chars(
-			std::span<char>(buff.header.entry.msg_seq_num.value),
-			msg_seq_num
-		);
 
-		utc_now<32, 4>(std::span<char>(buff.header.entry.sending_time.raw), settings::DATE_TIME_MASK);
+		buff.header.entry.msg_seq_num << msg_seq_num;
+
+		utc_now_32w<4>(std::span<char>(buff.header.entry.sending_time.raw), settings::DATE_TIME_MASK);
 	}
 
 	template<request Tm>
