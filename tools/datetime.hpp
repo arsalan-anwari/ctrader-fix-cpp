@@ -1,14 +1,8 @@
 #pragma once
 
 #include <chrono>
-//#include <string_view>
-//#include <span>
-
-//#include "strings.hpp"
-//#include "convert.hpp"
 #include "../types/datetime.hpp"
 #include "../types/numbers.hpp"
-//#include "../settings.hpp"
 
 namespace ctrader {
 	

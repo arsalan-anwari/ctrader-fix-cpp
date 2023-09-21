@@ -2,7 +2,6 @@
 
 #include "packet/header.hpp"
 #include "packet/body.hpp"
-#include "packet/trailer.hpp"
 #include "message.hpp"
 
 namespace ctrader {
@@ -15,17 +14,17 @@ namespace ctrader {
 			struct {
 				header_t header;
 				body_t<T> body;
-				entry_t<entry_type_t::end> trailer;
+				entry_t<2U, 3U, entry_type_t::end> trailer;
 			};
-			char data[sizeof(header_t) + sizeof(body_t<T>) + sizeof(entry_t<entry_type_t::end>) = {0};
+			char data[sizeof(header_t) + sizeof(body_t<T>) + sizeof(entry_t<2U, 3U, entry_type_t::end>)] = {0};
 		};
 
 		friend std::ostream& operator<<(std::ostream& os, const type& self) {
-			os << header << body << trailer;
+			os << self.header << self.body << self.trailer;
 			return os;
 		}
 
 
 	};
 
-};
+}

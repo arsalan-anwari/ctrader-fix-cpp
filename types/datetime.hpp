@@ -12,9 +12,9 @@ namespace ctrader {
     
         friend std::ostream& operator<<(std::ostream& os, const utc_time_t& self) {
             os
-                << static_cast<i32>(self.year) << "-"
-                << static_cast<i32>(self.month) << "-"
-                << static_cast<i32>(self.day) << " "
+                << static_cast<i32>(self.year)
+                << static_cast<i32>(self.month)
+                << static_cast<i32>(self.day) << "-"
                 << static_cast<i32>(self.hours) << ":"
                 << static_cast<i32>(self.minutes) << ":"
                 << static_cast<i32>(self.seconds) << "."
@@ -22,6 +22,7 @@ namespace ctrader {
             
             return os;
         }
+
     };
 
 

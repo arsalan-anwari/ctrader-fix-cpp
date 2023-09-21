@@ -5,12 +5,14 @@
 #include <initializer_list>
 #include <array>
 #include <span>
+#include <string_view>
 
+#include "../types/numbers.hpp"
 #include "../types/packet.hpp"
 #include "../types/encode.hpp"
-#include "../types/packet/header.hpp"
-#include "../tools/convert.hpp"
 #include "../settings.hpp"
+
+#include "../tools/convert.hpp"
 
 namespace {
 	using namespace ctrader;
@@ -21,35 +23,39 @@ namespace {
 	};
 
 	template<request T>
-	consteval u16 calc_body_length(packet_t<T>& buff) {
-		const auto header_part = sizeof(buff.header.raw) - 
-			(sizeof(buff.header.entry.begin_string) + sizeof(buff.header.entry.body_length));
+	constexpr u16 calc_body_length(packet_t<T>& buff) {
+		const auto header_part = sizeof(buff.header.raw)
+			- sizeof(buff.header.entry.begin_string.raw)
+			- sizeof(buff.header.entry.body_length.raw);
 
-		return header_part + sizeof(buff.body.raw) + sizeof(buff.trailer.raw) - 2U;
+		return header_part + sizeof(buff.body.raw) + 1U;
 	};
 
 	template<request T>
-	consteval packet_t<T> new_packet_from_fields(
+	constexpr packet_t<T> new_packet_from_fields(
 		connection conn, std::initializer_list<field_t> body_fields
 	) {
 		packet_t<T> out;
-		std::string buff = "8=FIX.4.4";
-		char body_length[3] = {'0', '0', '0'};
-	
-		to_chars(std::span<char>(body_length), calc_body_length(out));
+		std::string buff = "8=";
+		buff += settings::broker::FIX_VERSION;
 
-		// MSVC std::string implemntation is mentally retarted so therefore 
-		// I need to manually construct a new string from an initializer list
-		// instead of just passing a char* pointer... 
-		const std::array<field_t, 7> header_fields = {
-			field_t{"9", std::string({body_length[0], body_length[1], body_length[2]})},
-			field_t{"35", REQUEST_ID_VAL[static_cast<u8>(T) - 1U]},
-			field_t{"34", std::string(settings::MAX_SEQ_NUM_DIGITS, '0')},
-			field_t{"52", std::string(24, '0')},
+		// Message sizes differ per packet type, so calculate the size in advance. 
+		std::string body_length = { '0', '0', '0' };
+		from_intergral(std::span<char>(body_length.data(), body_length.size()), calc_body_length(out));
+
+		buff += settings::SOH;
+		buff += "9=";
+		buff += body_length;
+
+		const std::array<field_t, 6> header_fields = {
+			field_t{"35", REQUEST_ID_VAL[static_cast<u8>(T) - 1]},
 			field_t{"49", settings::broker::SENDER_COMP_ID},
-			field_t{"56", "CSERVER"},
-			field_t{"57", CONNECTION_NAME[static_cast<u8>(conn)]}
+			field_t{"56", settings::TARGET_COMP_ID},
+			field_t{"57", settings::TARGET_SUB_ID[static_cast<u8>(conn)]},
+			field_t{"34", std::string(settings::MAX_SEQ_NUM_DIGITS, '0')},
+			field_t{"52", settings::DATE_TIME_MASK}
 		};
+
 
 		for (const auto& field : header_fields) {
 			buff += settings::SOH;
@@ -79,25 +85,25 @@ namespace ctrader {
 namespace encode {
 
 	template<request T>
-	consteval auto new_packet(connection conn) {
+	constexpr auto new_packet(connection conn) {
 		return new_packet_from_fields<T>(conn, {
 			{"112", std::string("TEST")}
 		});
 	};
 
-	template<> consteval auto 
-	new_packet<request::logon>(connection conn) {
+	template<> 
+	constexpr auto new_packet<request::logon>(connection conn) {
 		return new_packet_from_fields<request::logon>(conn, {
 			{"98", "0"},
-			{"108", settings::HEARTBEAT_SEC},
+			{"108", std::to_string(settings::HEARTBEAT_SEC)},
 			{"141", "Y"},
 			{"553", settings::broker::USER_NAME},
 			{"554", settings::broker::PASSWORD}
 		});
 	};
 
-	template<> consteval auto
-	new_packet<request::market_data_req>(connection conn) {
+	template<> 
+	constexpr auto new_packet<request::market_data_req>(connection conn) {
 		return new_packet_from_fields<request::market_data_req>(conn, {
 			{"262", std::string(settings::MAX_REQ_ID_DIGITS, '0')},
 			{"263", "0"},
@@ -111,5 +117,5 @@ namespace encode {
 		});
 	};
 
-}
-}
+
+}} // namespace ctrader::encode 

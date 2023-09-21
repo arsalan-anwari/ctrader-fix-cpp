@@ -1,29 +1,31 @@
 #pragma once
 
 #include <span>
-
-#include "packet_generator.hpp"
+#include <string_view>
 
 #include "../tools/datetime.hpp"
 #include "../types/symbol.hpp"
 #include "../settings.hpp"
+
+#include "../tools/algorithm.hpp"
+
+#include "packet_generator.hpp"
 
 namespace {
 	using namespace ctrader;
 
 	template<request Tm>
 	inline void prepare_header(u64 msg_seq_num, packet_t<Tm>& buff) {
-
 		buff.header.entry.msg_seq_num << msg_seq_num;
-
-		utc_now_32w<4>(std::span<char>(buff.header.entry.sending_time.raw), settings::DATE_TIME_MASK);
+		buff.header.entry.sending_time << utc_now();
 	}
 
 	template<request Tm>
 	inline void prepare_footer(packet_t<Tm>& buff) {
-		const u32 checksum = ascii_sum<sizeof(buff.data) - 7>(buff.data) % 256;
-		std::memset(buff.trailer.value, '0', 3);
-		to_chars( std::span<char>(buff.trailer.value), checksum );
+		constexpr unsigned buff_size = static_cast<unsigned>(sizeof(buff.data) - 7);
+		const u32 checksum = ascii_sum<buff_size>(buff.data) % 256;
+		
+		buff.trailer << checksum;
 	}
 }
 
@@ -52,15 +54,10 @@ namespace encode {
 		) {
 			prepare_header(msg_seq_num, buff);
 
-			strcpy<static_cast<unsigned>(settings::MAX_REQ_ID_DIGITS)>(
-				buff.body.entry.md_req_id.value,
-				req_id.data()
-			);
-
-			buff.body.entry.subscription_req_type.value[0] = static_cast<char>(subs);
-			buff.body.entry.market_depth.value[0] = static_cast<char>(depth);
-
-			to_chars(std::span<char>(buff.body.entry.symbol.value), static_cast<u64>(sym));
+			buff.body.entry.md_req_id << req_id;
+			buff.body.entry.subscription_req_type << subs;
+			buff.body.entry.market_depth << depth;
+			buff.body.entry.symbol << sym;
 			
 			prepare_footer(buff);
 		}

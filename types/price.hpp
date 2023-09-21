@@ -6,7 +6,7 @@
 
 #include "numbers.hpp"
 #include "../tools/bitwise.hpp"
-#include "../tools/numbers.hpp"
+#include "../tools/math.hpp"
 
 namespace ctrader {
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../settings.hpp"
-#include "../tools/numbers.hpp"
+#include "../tools/math.hpp"
 
 namespace ctrader {
 

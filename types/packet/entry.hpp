@@ -3,16 +3,21 @@
 #include <iostream> // std::ostream
 #include <string> // std::string_view, std::span
 #include <concepts> // std::integral
+#include <memory>
 
+#include "../encode.hpp"
+#include "../symbol.hpp"
 #include "../message.hpp"
+
 #include "../../tools/convert.hpp"
 #include "../../tools/datetime.hpp"
+
 
 namespace ctrader {
 
 	enum class entry_type_t { start, normal, end };
 
-	template<u8 TagSize = 2U, u8 ValueSize = 3U, entry_type_t Type = entry_type_t::normal>
+	template<u8 TagSize, u8 ValueSize, entry_type_t Type = entry_type_t::normal>
 	struct entry_t {
 		using type = entry_t<TagSize, ValueSize, entry_type_t::normal>;
 
@@ -34,19 +39,40 @@ namespace ctrader {
 		}
 
 		friend type& operator<<(type& self, std::integral auto val) {
-			to_chars(std::span<char>(self.value), val);
+			from_intergral(std::span<char>(self.value), val);
 			return self;
 		}
 
 		friend type& operator<<(type& self, const utc_time_t& time) {
+			from_utc_time(std::span<char>(self.value), time);
+			return self;
+		}
 
+		friend type& operator<<(type& self, std::string_view val) {
+			std::memcpy(self.value, val.data(), val.size());
+			return self;
+		}
+
+		friend type& operator<<(type& self, subscription subs) {
+			self.value[0] = static_cast<char>(subs);
+			return self;
+		}
+
+		friend type& operator<<(type& self, market_depth depth) {
+			self.value[0] = static_cast<char>(depth);
+			return self;
+		}
+
+		friend type& operator<<(type& self, symbol sym) {
+			from_intergral(std::span<char>(self.value), static_cast<u64>(sym));
+			return self;
 		}
 
 	};
 
 
 	template<u8 TagSize, u8 ValueSize>
-	struct entry_t< TagSize, ValueSize, entry_type_t::start > {
+	struct entry_t<TagSize, ValueSize, entry_type_t::start> {
 		using type = entry_t<TagSize, ValueSize, entry_type_t::start>;
 
 		union {
@@ -65,14 +91,15 @@ namespace ctrader {
 			return os;
 		}
 
-		friend type& operator<<(type& self, std::integral auto val) {
-			to_chars(std::span<char>(self.value), val);
+		friend type& operator<<(type& self, std::string_view val) {
+			std::memcpy(self.value, val.data(), val.size());
 			return self;
 		}
+
 	};
 
 	template<u8 TagSize, u8 ValueSize>
-	struct entry_t<TagSize, ValueSize, entry_type_t::end > {
+	struct entry_t<TagSize, ValueSize, entry_type_t::end> {
 		using type = entry_t<TagSize, ValueSize, entry_type_t::end>;
 
 		union {
@@ -95,9 +122,11 @@ namespace ctrader {
 		}
 
 		friend type& operator<<(type& self, std::integral auto val) {
-			to_chars(std::span<char>(self.value), val);
+			std::memset(self.value, '0', 3);
+			from_intergral(std::span<char>(self.value), val);
 			return self;
 		}
+
 	};
 
 }
