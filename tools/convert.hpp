@@ -23,21 +23,21 @@ namespace ctrader {
         } while (value != 0);
     }
 
-    inline void from_utc_time(std::span<char> out, const utc_time_t& time) {
+    inline void from_utc_time(std::span<char> out, const utc_time_t& time, const u8 base_offset = 0U) {
         using namespace std::chrono;
 
         // clear buffer with datetime_mask
         std::memcpy(out.data(), settings::DATE_TIME_MASK.data(), settings::DATE_TIME_MASK.size());
         
         // copy time to buffer
-        from_intergral(out.subspan(0, 2), time.year);
-        from_intergral(out.subspan(4, 2), time.month);
-        from_intergral(out.subspan(6, 2), time.day);
+        from_intergral(out.subspan(base_offset + 0, 4), time.year);
+        from_intergral(out.subspan(base_offset + 4, 2), time.month);
+        from_intergral(out.subspan(base_offset + 6, 2), time.day);
 
-        from_intergral(out.subspan(9, 2), time.hours);
-        from_intergral(out.subspan(12, 2), time.minutes);
-        from_intergral(out.subspan(15, 2), time.seconds);
-        from_intergral(out.subspan(18, 6), time.frac_time);
+        from_intergral(out.subspan(base_offset + 9, 2), time.hours);
+        from_intergral(out.subspan(base_offset + 12, 2), time.minutes);
+        from_intergral(out.subspan(base_offset + 15, 2), time.seconds);
+        from_intergral(out.subspan(base_offset + 18, 6), time.frac_time);
     }
 
     template<typename T> requires std::integral<T>
