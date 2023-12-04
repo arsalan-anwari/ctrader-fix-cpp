@@ -10,12 +10,12 @@ namespace ctrader {
 	};
 
 	consteval unsigned get_maximum_stride_epi8() {
-		if (settings::AVX_AVAILABLE) {
-			if (settings::AVX2_AVAILABLE) { return 32U; }
-			if (settings::AVX512_AVAILABLE) { return 64; }
+		if (debug_settings::AVX_AVAILABLE) {
+			if (debug_settings::AVX2_AVAILABLE) { return 32U; }
+			if (debug_settings::AVX512_AVAILABLE) { return 64; }
 			return 16U;
 		}
-		return settings::SSE_AVAILABLE ? 16U : 1U;
+		return debug_settings::SSE_AVAILABLE ? 16U : 1U;
 	}
 
 	consteval unsigned stride_from_policy_epi8(const exec_policy policy) {
@@ -33,40 +33,40 @@ namespace ctrader {
 	}
 
 	consteval exec_policy policy_from_max_size_epi8(unsigned size) {
-		if (settings::AVX_AVAILABLE) {
+		if (debug_settings::AVX_AVAILABLE) {
 			if (size <= 16U) { return exec_policy::avx; }
 
 			if (size > 16U && size <= 32U) {
-				return settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
+				return debug_settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
 			}
 
 			if (size > 32U) {
-				return settings::AVX512_AVAILABLE ? 
+				return debug_settings::AVX512_AVAILABLE ?
 					exec_policy::avx512 : 
-					settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
+					debug_settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
 			}
 		}
 
-		if (settings::SSE_AVAILABLE && size >= 16U) { return exec_policy::sse; }
+		if (debug_settings::SSE_AVAILABLE && size >= 16U) { return exec_policy::sse; }
 		return exec_policy::scalar;
 	}
 
 	consteval exec_policy policy_from_min_size_epi8(unsigned size) {
-		if (settings::AVX_AVAILABLE) {
+		if (debug_settings::AVX_AVAILABLE) {
 			if (size >= 16U && size < 32U) { return exec_policy::avx; }
 
 			if (size >= 32U && size < 64U) {
-				return settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
+				return debug_settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
 			}
 
 			if (size > 64U) {
-				return settings::AVX512_AVAILABLE ?
+				return debug_settings::AVX512_AVAILABLE ?
 					exec_policy::avx512 :
-					settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
+					debug_settings::AVX2_AVAILABLE ? exec_policy::avx2 : exec_policy::avx;
 			}
 		}
 
-		if (settings::SSE_AVAILABLE && size >= 16U) { return exec_policy::sse; }
+		if (debug_settings::SSE_AVAILABLE && size >= 16U) { return exec_policy::sse; }
 		return exec_policy::scalar;
 	}
 

@@ -7,6 +7,8 @@
 #include <span>
 #include <string_view>
 
+#include "encode_settings.hpp"
+
 #include "../types/numbers.hpp"
 #include "../types/packet.hpp"
 #include "../types/encode.hpp"
@@ -22,8 +24,8 @@ namespace {
 		std::string_view value;
 	};
 
-	template<request T>
-	constexpr u16 calc_body_length(packet_t<T>& buff) {
+	template<encode::encode_settings_t Settings, request T>
+	constexpr u16 calc_body_length(packet_t<Settings, T>& buff) {
 		const auto header_part = sizeof(buff.header.raw)
 			- sizeof(buff.header.entry.begin_string.raw)
 			- sizeof(buff.header.entry.body_length.raw);
@@ -31,49 +33,48 @@ namespace {
 		return header_part + sizeof(buff.body.raw) + 1U;
 	};
 
-	template<request T>
-	constexpr packet_t<T> new_packet_from_fields(
+	template<encode::encode_settings_t Settings, request T>
+	constexpr packet_t<Settings, T> new_packet_from_fields(
 		connection conn, std::initializer_list<field_t> body_fields
 	) {
-		packet_t<T> out;
+		packet_t<Settings, T> out;
 		std::string buff = "8=";
-		buff += settings::broker::FIX_VERSION;
+		buff += std::string(Settings.fix_version);
 
 		// Message sizes differ per packet type, so calculate the size in advance. 
-		std::string body_length = { '0', '0', '0' };
-		from_intergral(std::span<char>(body_length.data(), body_length.size()), calc_body_length(out));
+		char body_length[Settings.max_msg_size_digits + 1] = { '0' };
+		from_intergral(std::span(body_length, Settings.max_msg_size_digits), calc_body_length(out));
 
-		buff += settings::SOH;
+		buff += debug_settings::SOH;
 		buff += "9=";
-		buff += body_length;
+		buff += std::string(body_length);
 
 		const std::array<field_t, 6> header_fields = {
-			field_t{"35", REQUEST_ID_VAL[static_cast<u8>(T) - 1]},
-			field_t{"49", settings::broker::SENDER_COMP_ID},
-			field_t{"56", settings::TARGET_COMP_ID},
-			field_t{"57", settings::TARGET_SUB_ID[static_cast<u8>(conn)]},
-			field_t{"34", std::string(settings::MAX_SEQ_NUM_DIGITS, '0')},
-			field_t{"52", settings::DATE_TIME_MASK}
+			field_t{ "35", REQUEST_ID_VAL[static_cast<u8>(T) - 1] },
+			field_t{ "49", std::string(Settings.sender_comp_id) },
+			field_t{ "56", std::string(Settings.target_comp_id) },
+			field_t{ "57", std::string(Settings.target_sub_id[static_cast<u8>(conn)]) },
+			field_t{ "34", std::string(Settings.max_seq_num_digits, '0') },
+			field_t{ "52", Settings.date_time_mask }
 		};
 
-
 		for (const auto& field : header_fields) {
-			buff += settings::SOH;
+			buff += debug_settings::SOH;
 			buff += field.key;
 			buff += "=";
 			buff += field.value;
 		}
 
 		for (const auto& field : body_fields) {
-			buff += settings::SOH;
+			buff += debug_settings::SOH;
 			buff += field.key;
 			buff += "=";
 			buff += field.value;
 		}
 
-		buff += settings::SOH;
+		buff += debug_settings::SOH;
 		buff += "10=000";
-		buff += settings::SOH;
+		buff += debug_settings::SOH;
 
 		std::copy(buff.begin(), buff.end(), out.data);
 		return out;
@@ -84,28 +85,28 @@ namespace {
 namespace ctrader {
 namespace encode {
 
-	template<request T>
-	constexpr auto new_packet(connection conn) {
-		return new_packet_from_fields<T>(conn, {
+	template<connection ConnectionType, encode_settings_t Settings, request Request>
+	struct packet_generator {
+		static constexpr auto data = new_packet_from_fields<Settings, Request>(ConnectionType, {
 			{"112", std::string("TEST")}
 		});
 	};
 
-	template<> 
-	constexpr auto new_packet<request::logon>(connection conn) {
-		return new_packet_from_fields<request::logon>(conn, {
+	template<connection ConnectionType, encode_settings_t Settings>
+	struct packet_generator<ConnectionType, Settings, request::logon> {
+		static constexpr auto data = new_packet_from_fields<Settings, request::logon>(ConnectionType, {
 			{"98", "0"},
-			{"108", std::to_string(settings::HEARTBEAT_SEC)},
+			{"108", std::string(Settings.heartbeat_sec)},
 			{"141", "Y"},
-			{"553", settings::broker::USER_NAME},
-			{"554", settings::broker::PASSWORD}
+			{"553", std::string(Settings.user_name)},
+			{"554", std::string(Settings.password)}
 		});
 	};
 
-	template<> 
-	constexpr auto new_packet<request::market_data_req>(connection conn) {
-		return new_packet_from_fields<request::market_data_req>(conn, {
-			{"262", std::string(settings::MAX_REQ_ID_DIGITS, '0')},
+	template<connection ConnectionType, encode_settings_t Settings>
+	struct packet_generator<ConnectionType, Settings, request::market_data_req> {
+		static constexpr auto data = new_packet_from_fields<Settings, request::market_data_req>(ConnectionType, {
+			{"262", std::string(Settings.max_req_id_digits, '0')},
 			{"263", "0"},
 			{"264", "0"},
 			{"265", "1"},
@@ -113,9 +114,42 @@ namespace encode {
 			{"269", "0"},
 			{"269", "1"},
 			{"146", "1"},
-			{"55", std::string(19, '0') }
+			{"55", std::string(Settings.max_symbol_digits, '0') }
 		});
 	};
+
+
+	/*constexpr auto new_packet(connection conn) {
+		return new_packet_from_fields<T>(conn, Settings, {
+			{"112", std::string("TEST")}
+		});
+	};*/
+
+	/*template<encode_settings_t Settings>
+	constexpr auto new_packet<Settings, request::logon>(connection conn) {
+		return new_packet_from_fields<Settings, request::logon>(conn, {
+			{"98", "0"},
+			{"108", std::to_string(Settings.heartbeat_sec)},
+			{"141", "Y"},
+			{"553", std::string(Settings.user_name)},
+			{"554", std::string(Settings.password)}
+		});
+	};*/
+
+	//template<encode_settings_t Settings>
+	//constexpr auto new_packet<Settings, request::market_data_req>(connection conn) {
+	//	return new_packet_from_fields<Settings, request::market_data_req>(conn, {
+	//		{"262", std::string(Settings.max_req_id_digits, '0')},
+	//		{"263", "0"},
+	//		{"264", "0"},
+	//		{"265", "1"},
+	//		{"267", "2"},
+	//		{"269", "0"},
+	//		{"269", "1"},
+	//		{"146", "1"},
+	//		{"55", std::string(Settings.max_symbol_digits, '0') }
+	//	});
+	//};
 
 
 }} // namespace ctrader::encode 

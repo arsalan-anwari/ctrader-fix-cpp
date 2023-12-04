@@ -4,6 +4,7 @@
 #include <string> // std::string_view, std::span
 #include <concepts> // std::integral
 #include <memory>
+#include <tuple> // std::tuple
 
 #include "../encode.hpp"
 #include "../symbol.hpp"
@@ -44,7 +45,19 @@ namespace ctrader {
 		}
 
 		friend type& operator<<(type& self, const utc_time_t& time) {
-			from_utc_time(std::span<char>(self.value), time);
+			from_utc_time(std::span<char>(self.value), default_date_time_mask, time, default_utc_time_offset);
+			return self;
+		}
+
+		friend type& operator<<(type& self, const std::tuple<utc_time_t, utc_time_offset_t> & time_data) {
+			const auto& [time, offset] = time_data;
+			from_utc_time(std::span<char>(self.value), default_date_time_mask, time, offset);
+			return self;
+		}
+
+		friend type& operator<<(type& self, const std::tuple<std::string_view, utc_time_t, utc_time_offset_t>& time_data) {
+			const auto& [mask, time, offset] = time_data;
+			from_utc_time(std::span<char>(self.value), mask, time, offset);
 			return self;
 		}
 

@@ -14,14 +14,14 @@
 namespace {
 	using namespace ctrader;
 
-	template<request Tm>
-	inline void prepare_header(u64 msg_seq_num, packet_t<Tm>& buff) {
+	template<encode::encode_settings_t Settings, request RequestType>
+	inline void prepare_header(u64 msg_seq_num, packet_t<Settings, RequestType>& buff) {
 		buff.header.entry.msg_seq_num << msg_seq_num;
 		buff.header.entry.sending_time << utc_now();
 	}
 
-	template<request Tm>
-	inline void prepare_footer(packet_t<Tm>& buff) {
+	template<encode::encode_settings_t Settings, request RequestType>
+	inline void prepare_footer(packet_t<Settings, RequestType>& buff) {
 		constexpr unsigned buff_size = static_cast<unsigned>(sizeof(buff.data) - 7);
 		const u32 checksum = ascii_sum<buff_size>(buff.data) % 256;
 		
@@ -32,18 +32,18 @@ namespace {
 namespace ctrader{
 namespace encode {
 
-	template<connection Tc, request Tm>
+	template<connection ConnectionType, encode_settings_t Settings, request RequestType>
 	struct encode_method {
-		packet_t<Tm> buff = encode::new_packet<Tm>(Tc);
+		packet_t<Settings, RequestType> buff = encode::packet_generator<ConnectionType, Settings, RequestType>::data;
 		void prepare(u64 msg_seq_num) {
 			prepare_header(msg_seq_num, buff);
 			prepare_footer(buff);
 		}
 	};
 
-	template<connection Tc>
-	struct encode_method<Tc, request::market_data_req> {
-		packet_t<request::market_data_req> buff = encode::new_packet<request::market_data_req>(Tc);
+	template<connection ConnectionType, encode_settings_t Settings>
+	struct encode_method<ConnectionType, Settings, request::market_data_req> {
+		packet_t<Settings, request::market_data_req> buff = encode::packet_generator<ConnectionType, Settings, request::market_data_req>::data;
 
 		void prepare(
 			u64 msg_seq_num,

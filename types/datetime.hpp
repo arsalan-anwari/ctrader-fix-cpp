@@ -25,6 +25,19 @@ namespace ctrader {
 
     };
 
+    using utc_time_offset_t = struct {
+        u8 year, month, day;
+        u8 hours, minutes, seconds, frac_time;
+    };
+
+    static constexpr auto default_utc_time_offset = utc_time_offset_t{
+        .year = 0u, .month = 4u, .day = 6u,
+        .hours = 9u, .minutes = 12u, .seconds = 15u, .frac_time = 18u
+    };
+
+    static constexpr std::string_view default_date_time_mask = "00000000-00:00:00.000000";
+    
+
 
 
 };

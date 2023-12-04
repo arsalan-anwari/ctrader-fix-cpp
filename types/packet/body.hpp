@@ -2,14 +2,16 @@
 
 #include "entry.hpp"
 #include "../../settings.hpp"
+#include "../../encoder/encode_settings.hpp"
+#include "../../tools/math.hpp"
 
 namespace ctrader {
 
-	template<request T> struct body_t {
-		using type = body_t<T>;
+	template<encode::encode_settings_t Settings, request Request> struct body_t {
+		using type = body_t<Settings, Request>;
 		union {
 			struct {
-				entry_t<3U, settings::MAX_TEST_ID_DIGITS> test_req_id; // ???={0-9;A-Z:MAX_TEST_ID_DIGITS}
+				entry_t<3U, Settings.max_test_id_digits> test_req_id; // ???={0-9;A-Z:MAX_TEST_ID_DIGITS}
 			} entry;
 			char raw[sizeof(entry)];
 		};
@@ -20,15 +22,16 @@ namespace ctrader {
 		}
 	};
 
-	template<> struct body_t<request::logon> {
-		using type = body_t<request::logon>;
+	template<encode::encode_settings_t Settings>
+	struct body_t<Settings, request::logon> {
+		using type = body_t<Settings, request::logon>;
 		union {
 			struct {
 				entry_t<2U, 1U> encrypt_method; // 98={0?1}
-				entry_t<3U, settings::HEARTBEAT_SEC_DIGIT_SIZE> heartbeat; // 108={0-9:HEARTBEAT_SEC}
+				entry_t<3U, string_length(Settings.heartbeat_sec)> heartbeat; // 108={0-9:HEARTBEAT_SEC}
 				entry_t<3U, 1U> reset_seq_num_flag; //141={Y?N}
-				entry_t<3U, settings::broker::USER_NAME.size()> username; // 553={USER_NAME}
-				entry_t<3U, settings::broker::PASSWORD.size()> password; // 554={PASSWORD}
+				entry_t<3U, string_length(Settings.user_name)> username; // 553={USER_NAME}
+				entry_t<3U, string_length(Settings.password)> password; // 554={PASSWORD}
 			} entry;
 			char raw[sizeof(entry)];
 		};
@@ -45,11 +48,12 @@ namespace ctrader {
 		}
 	};
 
-	template<> struct body_t<request::market_data_req> {
-		using type = body_t<request::market_data_req>;
+	template<encode::encode_settings_t Settings>
+	struct body_t<Settings, request::market_data_req> {
+		using type = body_t<Settings, request::market_data_req>;
 		union {
 			struct {
-				entry_t<3U, settings::MAX_REQ_ID_DIGITS> md_req_id; // 262={0-9:MAX_REQ_ID_DIGITS}
+				entry_t<3U, Settings.max_req_id_digits> md_req_id; // 262={0-9:MAX_REQ_ID_DIGITS}
 				entry_t<3U, 1U> subscription_req_type; // 263={0?1}
 				entry_t<3U, 1U> market_depth; // 264={0?1}
 				entry_t<3U, 1U> md_update_type; // 265={0?1}
@@ -59,7 +63,7 @@ namespace ctrader {
 				entry_t<3U, 1U> symbol_count; // 146={0?1}
 
 				// 55={SYMBOL_IS_DIGIT_ONLY ? 0-9:MAX_SYMBOL_DIGITS : 0-9;A-Z:MAX_SYMBOL_DIGITS}
-				entry_t<2U, settings::broker::MAX_SYMBOL_DIGITS> symbol;
+				entry_t<2U, Settings.max_symbol_digits> symbol;
 			} entry;
 			char raw[sizeof(entry)];
 		};
