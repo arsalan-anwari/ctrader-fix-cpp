@@ -1,17 +1,18 @@
 #pragma once
 
 #include "entry.hpp"
-#include "../../settings.hpp"
-#include "../../encoder/encode_settings.hpp"
+#include "../../debug_settings.hpp"
+#include "../../encode_settings.hpp"
+#include "../../types/encode.hpp"
 #include "../../tools/math.hpp"
 
 namespace ctrader {
 
-	template<encode::encode_settings_t Settings, request Request> struct body_t {
-		using type = body_t<Settings, Request>;
+	template<encode_options Settings, request Request> struct body {
+		using type = body<Settings, Request>;
 		union {
 			struct {
-				entry_t<3U, Settings.max_test_id_digits> test_req_id; // ???={0-9;A-Z:MAX_TEST_ID_DIGITS}
+				entry<3U, Settings.max_test_id_digits> test_req_id; // ???={0-9;A-Z:MAX_TEST_ID_DIGITS}
 			} entry;
 			char raw[sizeof(entry)];
 		};
@@ -22,16 +23,16 @@ namespace ctrader {
 		}
 	};
 
-	template<encode::encode_settings_t Settings>
-	struct body_t<Settings, request::logon> {
-		using type = body_t<Settings, request::logon>;
+	template<encode_options Settings>
+	struct body<Settings, request::logon> {
+		using type = body<Settings, request::logon>;
 		union {
 			struct {
-				entry_t<2U, 1U> encrypt_method; // 98={0?1}
-				entry_t<3U, string_length(Settings.heartbeat_sec)> heartbeat; // 108={0-9:HEARTBEAT_SEC}
-				entry_t<3U, 1U> reset_seq_num_flag; //141={Y?N}
-				entry_t<3U, string_length(Settings.user_name)> username; // 553={USER_NAME}
-				entry_t<3U, string_length(Settings.password)> password; // 554={PASSWORD}
+				entry<2U, 1U> encrypt_method; // 98={0?1}
+				entry<3U, cv_digit_count(Settings.heartbeat_sec)> heartbeat; // 108={0-9:HEARTBEAT_SEC}
+				entry<3U, 1U> reset_seq_num_flag; //141={Y?N}
+				entry<3U, string_length(Settings.user_name)> username; // 553={USER_NAME}
+				entry<3U, string_length(Settings.password)> password; // 554={PASSWORD}
 			} entry;
 			char raw[sizeof(entry)];
 		};
@@ -48,22 +49,22 @@ namespace ctrader {
 		}
 	};
 
-	template<encode::encode_settings_t Settings>
-	struct body_t<Settings, request::market_data_req> {
-		using type = body_t<Settings, request::market_data_req>;
+	template<encode_options Settings>
+	struct body<Settings, request::market_data_req> {
+		using type = body<Settings, request::market_data_req>;
 		union {
 			struct {
-				entry_t<3U, Settings.max_req_id_digits> md_req_id; // 262={0-9:MAX_REQ_ID_DIGITS}
-				entry_t<3U, 1U> subscription_req_type; // 263={0?1}
-				entry_t<3U, 1U> market_depth; // 264={0?1}
-				entry_t<3U, 1U> md_update_type; // 265={0?1}
-				entry_t<3U, 1U> entry_type_count; // 267={0?1}
-				entry_t<3U, 1U> entry_bid; // 269={0?1}
-				entry_t<3U, 1U> entry_offer; // 269={0?1}
-				entry_t<3U, 1U> symbol_count; // 146={0?1}
+				entry<3U, Settings.max_req_id_digits> md_req_id; // 262={0-9:MAX_REQ_ID_DIGITS}
+				entry<3U, 1U> subscription_req_type; // 263={0?1}
+				entry<3U, 1U> market_depth; // 264={0?1}
+				entry<3U, 1U> md_update_type; // 265={0?1}
+				entry<3U, 1U> entry_type_count; // 267={0?1}
+				entry<3U, 1U> entry_bid; // 269={0?1}
+				entry<3U, 1U> entry_offer; // 269={0?1}
+				entry<3U, 1U> symbol_count; // 146={0?1}
 
 				// 55={SYMBOL_IS_DIGIT_ONLY ? 0-9:MAX_SYMBOL_DIGITS : 0-9;A-Z:MAX_SYMBOL_DIGITS}
-				entry_t<2U, Settings.max_symbol_digits> symbol;
+				entry<2U, Settings.max_symbol_digits> symbol;
 			} entry;
 			char raw[sizeof(entry)];
 		};
@@ -85,11 +86,11 @@ namespace ctrader {
 	};
 
 	
-	//template<> struct body_t<request::market_data_req> {
-	//	using type = body_t<request::market_data_req>;
+	//template<> struct body<request::market_data_req> {
+	//	using type = body<request::market_data_req>;
 	//	union {
 	//		struct {
-	//			entry_t<, > ;
+	//			entry<, > ;
 	//		} entry;
 	//		char raw[sizeof(entry)];
 	//	};

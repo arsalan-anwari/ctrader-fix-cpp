@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../settings.hpp"
+#include "../debug_settings.hpp"
 #include "../tools/math.hpp"
 
 namespace ctrader {

@@ -28,16 +28,16 @@ namespace decode {
         md_type entry_type = md_type::undefined;
         u64 entry_id = 0;
         symbol symbol = symbol::undefined;
-        price_t entry_price;
+        price entry_price;
         u64 entry_size = 0;
     };
 
-    struct range_t {
+    struct range {
         u8 begin; 
         u8 end;
     };
 
-    constexpr range_t SYMBOL_SKIP_SIZES[] = {
+    constexpr range SYMBOL_SKIP_SIZES[] = {
         {0, 0},
         {25, 50}
     };

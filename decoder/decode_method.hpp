@@ -11,7 +11,7 @@
 #include "../tools/bitwise.hpp"
 #include "../tools/find.hpp"
 #include "../tools/convert.hpp"
-#include "../settings.hpp"
+#include "../debug_settings.hpp"
 
 
 
@@ -45,7 +45,7 @@ namespace decode{
             // be to be performed to find with occurance of 'Symbol' tag. 
             const u32 symbol_offset = static_cast<u32>(msg.find(std::format("{}55", settings::SOH).c_str()));
             const symbol symbol_value = get_symbol(msg.substr(symbol_offset + 4, 20)); // xxxx...|270
-            const range_t skip_size = SYMBOL_SKIP_SIZES[static_cast<u64>(symbol_value)];
+            const range skip_size = SYMBOL_SKIP_SIZES[static_cast<u64>(symbol_value)];
 
             // Start inserting from index 1 as index 0 is reserved for error values
             u32 search_offset = 0;

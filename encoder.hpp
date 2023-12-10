@@ -6,23 +6,23 @@
 #include "types/encode.hpp"
 
 #include "encoder/encode_method.hpp"
-#include "encoder/encode_settings.hpp"
+#include "encode_settings.hpp"
 #include "tools/bitwise.hpp"
 
 
 namespace ctrader {
 namespace encode {
 
-template<connection Connection, encode_settings_t Settings = default_encode_settings >
+template<connection Connection, encode_options Settings = default_encode_settings >
     class encoder {
     public:
 
         template<request Request, typename... Field>
         void encode(Field... fields) {
-            if constexpr (Request == request::heart_beat) { heart_beat.prepare(msg_seq_num, fields...); return; }
-            if constexpr (Request == request::test_req) { test_req.prepare(msg_seq_num, fields...); return; }
-            if constexpr (Request == request::logon) { logon.prepare(msg_seq_num, fields...); return; }
-            if constexpr (Request == request::market_data_req) { market_data_req.prepare(msg_seq_num, fields...); return; }
+            if constexpr (Request == request::heart_beat) { heart_beat.prepare(msg_seq_num, fields...); }
+            if constexpr (Request == request::test_req) { test_req.prepare(msg_seq_num, fields...); }
+            if constexpr (Request == request::logon) { logon.prepare(msg_seq_num, fields...); }
+            if constexpr (Request == request::market_data_req) { market_data_req.prepare(msg_seq_num, fields...); }
             advance_seq_num();
         }
 
@@ -40,7 +40,7 @@ template<connection Connection, encode_settings_t Settings = default_encode_sett
         }
 
     private:
-        u64 msg_seq_num = 1;
+        u64 msg_seq_num = 1u;
 
         encode_method<Connection, Settings, request::heart_beat> heart_beat;
         encode_method<Connection, Settings, request::test_req> test_req;

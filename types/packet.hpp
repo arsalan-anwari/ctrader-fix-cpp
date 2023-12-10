@@ -6,18 +6,18 @@
 
 namespace ctrader {
 
-	template<encode::encode_settings_t Settings, request Request>
+	template<encode_options Settings, request Request>
 	struct packet_t {
 		using type = packet_t<Settings, Request>;
 		//using value_type = T;
 
 		union {
 			struct {
-				header_t<Settings> header;
-				body_t<Settings, Request> body;
-				entry_t<2U, 3U, entry_type_t::end> trailer;
+				header<Settings> header;
+				body<Settings, Request> body;
+				entry<2U, 3U, entry_type::end> trailer;
 			};
-			char data[sizeof(header_t<Settings>) + sizeof(body_t<Settings, Request>) + sizeof(entry_t<2U, 3U, entry_type_t::end>)] = {0};
+			char data[sizeof(header<Settings>) + sizeof(body<Settings, Request>) + sizeof(entry<2U, 3U, entry_type::end>)] = {0};
 		};
 
 		friend std::ostream& operator<<(std::ostream& os, const type& self) {

@@ -7,10 +7,12 @@
 #include "../types/price.hpp"
 #include "../types/datetime.hpp"
 #include "../types/concepts.hpp"
+#include "../types/string.hpp"
 
-#include "../settings.hpp"
+#include "../debug_settings.hpp"
 
 #include "algorithm.hpp"
+#include "math.hpp"
 
 namespace ctrader {
 
@@ -25,7 +27,7 @@ namespace ctrader {
 
     inline void from_utc_time(
         std::span<char> out, const std::string_view date_time_mask, 
-        const utc_time_t& time, const utc_time_offset_t offset
+        const utc_time& time, const utc_time_offset offset
     ) {
         using namespace std::chrono;
 
@@ -56,15 +58,25 @@ namespace ctrader {
         return static_cast<T>(value);
     }
 
-    inline price_t as_price(std::string_view buff) {
+    inline price as_price(std::string_view buff) {
         u32 pos_d = find<16U>(buff.data(), '.');
         u32 size_frac = static_cast<u32>(buff.size() - (pos_d + 1U));
 
-        return price_t{
+        return price{
             as_integral<i32>(buff.substr(0, pos_d)),
             as_integral<u32>(buff.substr(pos_d + 1, size_frac)),
             static_cast<u8>(rfind<5U>(buff.data() + pos_d + 1, '0'))
         };
+    }
+
+    template<usize value>
+    consteval cv_string<cv_digit_count(value)> as_cv_string() {
+        constexpr auto value_digits = cv_digit_count(value);
+        cv_string<value_digits> buff;
+
+        from_intergral(std::span(buff.data, value_digits), value);
+
+        return buff;
     }
 
 

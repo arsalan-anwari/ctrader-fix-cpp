@@ -7,12 +7,12 @@
 #include <span>
 #include <string_view>
 
-#include "encode_settings.hpp"
+#include "../encode_settings.hpp"
 
 #include "../types/numbers.hpp"
 #include "../types/packet.hpp"
 #include "../types/encode.hpp"
-#include "../settings.hpp"
+#include "../debug_settings.hpp"
 
 #include "../tools/convert.hpp"
 
@@ -24,7 +24,7 @@ namespace {
 		std::string_view value;
 	};
 
-	template<encode::encode_settings_t Settings, request T>
+	template<encode_options Settings, request T>
 	constexpr u16 calc_body_length(packet_t<Settings, T>& buff) {
 		const auto header_part = sizeof(buff.header.raw)
 			- sizeof(buff.header.entry.begin_string.raw)
@@ -33,7 +33,7 @@ namespace {
 		return header_part + sizeof(buff.body.raw) + 1U;
 	};
 
-	template<encode::encode_settings_t Settings, request T>
+	template<encode_options Settings, request T>
 	constexpr packet_t<Settings, T> new_packet_from_fields(
 		connection conn, std::initializer_list<field_t> body_fields
 	) {
@@ -85,25 +85,27 @@ namespace {
 namespace ctrader {
 namespace encode {
 
-	template<connection ConnectionType, encode_settings_t Settings, request Request>
+	template<connection ConnectionType, encode_options Settings, request Request>
 	struct packet_generator {
 		static constexpr auto data = new_packet_from_fields<Settings, Request>(ConnectionType, {
 			{"112", std::string("TEST")}
 		});
 	};
 
-	template<connection ConnectionType, encode_settings_t Settings>
+	template<connection ConnectionType, encode_options Settings>
 	struct packet_generator<ConnectionType, Settings, request::logon> {
+		static constexpr auto heartbeat_sec = ctrader::as_cv_string<Settings.heartbeat_sec>();
+
 		static constexpr auto data = new_packet_from_fields<Settings, request::logon>(ConnectionType, {
 			{"98", "0"},
-			{"108", std::string(Settings.heartbeat_sec)},
+			{"108", std::string(heartbeat_sec.data, heartbeat_sec.length)},
 			{"141", "Y"},
 			{"553", std::string(Settings.user_name)},
 			{"554", std::string(Settings.password)}
 		});
 	};
 
-	template<connection ConnectionType, encode_settings_t Settings>
+	template<connection ConnectionType, encode_options Settings>
 	struct packet_generator<ConnectionType, Settings, request::market_data_req> {
 		static constexpr auto data = new_packet_from_fields<Settings, request::market_data_req>(ConnectionType, {
 			{"262", std::string(Settings.max_req_id_digits, '0')},
@@ -125,7 +127,7 @@ namespace encode {
 		});
 	};*/
 
-	/*template<encode_settings_t Settings>
+	/*template<encode_options Settings>
 	constexpr auto new_packet<Settings, request::logon>(connection conn) {
 		return new_packet_from_fields<Settings, request::logon>(conn, {
 			{"98", "0"},
@@ -136,7 +138,7 @@ namespace encode {
 		});
 	};*/
 
-	//template<encode_settings_t Settings>
+	//template<encode_options Settings>
 	//constexpr auto new_packet<Settings, request::market_data_req>(connection conn) {
 	//	return new_packet_from_fields<Settings, request::market_data_req>(conn, {
 	//		{"262", std::string(Settings.max_req_id_digits, '0')},

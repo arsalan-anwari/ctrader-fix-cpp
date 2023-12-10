@@ -14,5 +14,8 @@ namespace ctrader {
 	using u32 = uint32_t;
 	using u64 = uint64_t;
 
+	using usize = std::size_t;
+	using isize = std::ptrdiff_t;
+
 }
 

@@ -6,7 +6,7 @@
 
 namespace ctrader {
 
-	inline utc_time_t utc_now() {
+	inline utc_time utc_now() {
 		using namespace std::chrono;
 
 		// get current datetime from systemclock
@@ -17,7 +17,7 @@ namespace ctrader {
 		year_month_day ymd{ local_time_in_days };
 		hh_mm_ss hms{ local_time - local_time_in_days };
 
-		return utc_time_t{
+		return utc_time{
 			.year = static_cast<u16>(int{ ymd.year() }),
 			.month = static_cast<u8>(unsigned{ ymd.month() }),
 			.day = static_cast<u8>(unsigned{ ymd.day() }),

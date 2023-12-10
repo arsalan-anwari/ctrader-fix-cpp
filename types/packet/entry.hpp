@@ -16,11 +16,11 @@
 
 namespace ctrader {
 
-	enum class entry_type_t { start, normal, end };
+	enum class entry_type { start, normal, end };
 
-	template<u8 TagSize, u8 ValueSize, entry_type_t Type = entry_type_t::normal>
-	struct entry_t {
-		using type = entry_t<TagSize, ValueSize, entry_type_t::normal>;
+	template<u8 TagSize, u8 ValueSize, entry_type Type = entry_type::normal>
+	struct entry {
+		using type = entry<TagSize, ValueSize, entry_type::normal>;
 
 		union {
 			struct {
@@ -44,18 +44,18 @@ namespace ctrader {
 			return self;
 		}
 
-		friend type& operator<<(type& self, const utc_time_t& time) {
+		friend type& operator<<(type& self, const utc_time& time) {
 			from_utc_time(std::span<char>(self.value), default_date_time_mask, time, default_utc_time_offset);
 			return self;
 		}
 
-		friend type& operator<<(type& self, const std::tuple<utc_time_t, utc_time_offset_t> & time_data) {
+		friend type& operator<<(type& self, const std::tuple<utc_time, utc_time_offset> & time_data) {
 			const auto& [time, offset] = time_data;
 			from_utc_time(std::span<char>(self.value), default_date_time_mask, time, offset);
 			return self;
 		}
 
-		friend type& operator<<(type& self, const std::tuple<std::string_view, utc_time_t, utc_time_offset_t>& time_data) {
+		friend type& operator<<(type& self, const std::tuple<std::string_view, utc_time, utc_time_offset>& time_data) {
 			const auto& [mask, time, offset] = time_data;
 			from_utc_time(std::span<char>(self.value), mask, time, offset);
 			return self;
@@ -85,8 +85,8 @@ namespace ctrader {
 
 
 	template<u8 TagSize, u8 ValueSize>
-	struct entry_t<TagSize, ValueSize, entry_type_t::start> {
-		using type = entry_t<TagSize, ValueSize, entry_type_t::start>;
+	struct entry<TagSize, ValueSize, entry_type::start> {
+		using type = entry<TagSize, ValueSize, entry_type::start>;
 
 		union {
 			struct {
@@ -112,8 +112,8 @@ namespace ctrader {
 	};
 
 	template<u8 TagSize, u8 ValueSize>
-	struct entry_t<TagSize, ValueSize, entry_type_t::end> {
-		using type = entry_t<TagSize, ValueSize, entry_type_t::end>;
+	struct entry<TagSize, ValueSize, entry_type::end> {
+		using type = entry<TagSize, ValueSize, entry_type::end>;
 
 		union {
 			struct {

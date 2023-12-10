@@ -10,38 +10,38 @@
 
 namespace ctrader {
 
-    struct price_t {
+    struct price {
 
-        price_t() : 
+        price() : 
             whole_part(-1), 
             fractional_part(0U), 
             fractional_subbase(0U) 
         {}
 
         template<typename T>
-        price_t(T&& other) :
+        price(T&& other) :
             whole_part(other.whole_part),
             fractional_part(other.fractional_part),
             fractional_subbase(other.fractional_subbase)
         {}
 
-        price_t(i32&& a, u32&& b, u8&& c) : 
+        price(i32&& a, u32&& b, u8&& c) : 
             whole_part(a),
             fractional_part(b),
             fractional_subbase(c)
         {}
 
-        price_t& operator=(price_t other) noexcept {
+        price& operator=(price other) noexcept {
             std::swap(whole_part, other.whole_part);
             std::swap(fractional_part, other.fractional_part);
             std::swap(fractional_subbase, other.fractional_subbase);
             return *this;
         }
 
-        price_t& operator+() { std::abs(whole_part); return *this; }
-        price_t& operator-() { whole_part *= -1; return *this; }
+        price& operator+() { std::abs(whole_part); return *this; }
+        price& operator-() { whole_part *= -1; return *this; }
 
-        friend bool operator<(const price_t& lhs, const price_t& rhs) {
+        friend bool operator<(const price& lhs, const price& rhs) {
             return (
                 (lhs.whole_part <= rhs.whole_part) &&
                 (lhs.fractional_subbase >= rhs.fractional_subbase) &&
@@ -49,7 +49,7 @@ namespace ctrader {
             );
         }
 
-        friend bool operator==(const price_t& lhs, const price_t& rhs) {
+        friend bool operator==(const price& lhs, const price& rhs) {
             return (
                 (lhs.whole_part == rhs.whole_part) &&
                 (lhs.fractional_subbase == rhs.fractional_subbase) &&
@@ -57,7 +57,7 @@ namespace ctrader {
             );
         }
 
-        auto operator<=>(const price_t&) const = default;
+        auto operator<=>(const price&) const = default;
 
         operator float() const {
             float base = 0.0f;
@@ -68,7 +68,7 @@ namespace ctrader {
         operator unsigned() const { return static_cast<u32>(whole_part); }
         operator signed() const { return whole_part; }
 
-        friend std::ostream& operator<<(std::ostream& os, const price_t& self) {
+        friend std::ostream& operator<<(std::ostream& os, const price& self) {
             os << self.whole_part << "." << std::string(self.fractional_subbase, '0') << self.fractional_part;
             return os;
         };

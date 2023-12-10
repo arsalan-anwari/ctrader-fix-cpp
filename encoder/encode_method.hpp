@@ -5,7 +5,7 @@
 
 #include "../tools/datetime.hpp"
 #include "../types/symbol.hpp"
-#include "../settings.hpp"
+#include "../debug_settings.hpp"
 
 #include "../tools/algorithm.hpp"
 
@@ -14,13 +14,13 @@
 namespace {
 	using namespace ctrader;
 
-	template<encode::encode_settings_t Settings, request RequestType>
+	template<encode_options Settings, request RequestType>
 	inline void prepare_header(u64 msg_seq_num, packet_t<Settings, RequestType>& buff) {
 		buff.header.entry.msg_seq_num << msg_seq_num;
 		buff.header.entry.sending_time << utc_now();
 	}
 
-	template<encode::encode_settings_t Settings, request RequestType>
+	template<encode_options Settings, request RequestType>
 	inline void prepare_footer(packet_t<Settings, RequestType>& buff) {
 		constexpr unsigned buff_size = static_cast<unsigned>(sizeof(buff.data) - 7);
 		const u32 checksum = ascii_sum<buff_size>(buff.data) % 256;
@@ -32,7 +32,7 @@ namespace {
 namespace ctrader{
 namespace encode {
 
-	template<connection ConnectionType, encode_settings_t Settings, request RequestType>
+	template<connection ConnectionType, encode_options Settings, request RequestType>
 	struct encode_method {
 		packet_t<Settings, RequestType> buff = encode::packet_generator<ConnectionType, Settings, RequestType>::data;
 		void prepare(u64 msg_seq_num) {
@@ -41,7 +41,7 @@ namespace encode {
 		}
 	};
 
-	template<connection ConnectionType, encode_settings_t Settings>
+	template<connection ConnectionType, encode_options Settings>
 	struct encode_method<ConnectionType, Settings, request::market_data_req> {
 		packet_t<Settings, request::market_data_req> buff = encode::packet_generator<ConnectionType, Settings, request::market_data_req>::data;
 
